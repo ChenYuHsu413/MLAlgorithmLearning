@@ -8,7 +8,7 @@
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=111111)
 
-互動式機器學習演算法學習網站。專案使用 FastAPI 提供十大機器學習演算法資料 API，前端使用 Next.js 製作互動式學習平台，包含搜尋、分類篩選、視覺化卡片、小測驗、程式碼範例與比較表。
+互動式機器學習演算法學習網站。專案使用 FastAPI 提供十大機器學習演算法資料 API，前端使用 Next.js 製作互動式學習平台，包含搜尋、分類篩選、視覺化卡片、小測驗、程式碼範例與比較表，以及基於 WebSocket 逐字串流的 AI 機器學習助教聊天機器人。
 
 ## 專案結構
 
@@ -21,6 +21,8 @@
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── .env.example
+│   ├── components/
+│   │   └── AIChatbot.tsx
 │   └── pages/
 │       ├── index.js
 │       └── algorithms/
@@ -34,7 +36,8 @@
 ## 使用技術
 
 - Frontend: Next.js 15, React 18
-- Backend: FastAPI, Uvicorn, Pydantic
+- Backend: FastAPI, Uvicorn, Pydantic, OpenAI API
+- Real-time Communication: HTML5 WebSocket API
 - Deployment: Render
 - Version Control: Git, GitHub
 
@@ -73,6 +76,15 @@ npm run dev
 NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.example.com
 ```
 
+### 3. AI 助教 API 金鑰與模擬模式
+
+此專案整合了實時的 **AI 機器學習助教**，前後端透過 WebSocket 建立連線以達到逐字串流的回覆體驗。
+- **配置 API 金鑰**：請在 `backend` 目錄下建立 `.env` 檔案，並配置您的 OpenAI API 金鑰：
+  ```env
+  OPENAI_API_KEY=sk-xxxx...
+  ```
+- **模擬演示模式（Fallback Mock Mode）**：若未檢測到 `OPENAI_API_KEY` 環境變數，後端將自動降級為模擬測試模式。在此模式下，對話框仍可正常發送消息，您可以提問「過擬合」、「資料洩漏」或「建模流程」等主題，助教會以模擬串流的 typewriter 效果逐步打印詳細的思考引導，以便本機開發和排錯。
+
 ## Render 部署設定
 
 這個專案是 monorepo，`backend` 和 `frontend` 需要在 Render 建成兩個 Web Service。
@@ -92,6 +104,12 @@ pip install -r requirements.txt
 
 ```bash
 gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+```
+
+- Environment Variables:
+
+```bash
+OPENAI_API_KEY=your-openai-api-key-here
 ```
 
 Render 的 Web Service 必須綁定 `0.0.0.0`，並建議使用 Render 提供的 `$PORT`。後端使用 Gunicorn 啟動，並透過 Uvicorn worker 執行 FastAPI。
@@ -117,9 +135,10 @@ npm start
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://your-backend-service.onrender.com
+NEXT_PUBLIC_WS_URL=wss://your-backend-service.onrender.com/ws/ai-chat
 ```
 
-`NEXT_PUBLIC_API_BASE_URL` 必須設定成 Render 後端服務的正式網址。Next.js 的 `NEXT_PUBLIC_` 變數會在 build 時寫入前端 bundle，所以部署前端前要先設定好這個值。
+`NEXT_PUBLIC_API_BASE_URL` 必須設定成 Render 後端服務的正式網址。`NEXT_PUBLIC_WS_URL` 為 WebSocket 的連線網址（請使用 `wss://` 安全協定）。Next.js 的 `NEXT_PUBLIC_` 變數會在 build 時寫入前端 bundle，所以部署前端前要先設定好這個值。
 
 ### 建議部署順序
 
