@@ -21,10 +21,12 @@ export default function AIChatbot({ activeAlgorithmName }: AIChatbotProps) {
   ]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [reconnectCount, setReconnectCount] = useState<number>(0);
 
   const socketRef = useRef<WebSocket | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const reconnectCountRef = useRef<number>(0);
+  const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
 
   // Suggested questions based on ML themes
   const quickPrompts = [
@@ -33,89 +35,81 @@ export default function AIChatbot({ activeAlgorithmName }: AIChatbotProps) {
     '什麼是資料洩漏 (Data Leakage)？該如何避免？',
   ];
 
-  // Initialize and maintain WebSocket connection
   useEffect(() => {
-    let reconnectTimer: NodeJS.Timeout;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (socketRef.current) socketRef.current.close();
+    };
+  }, []);
+
+  // Lazy connect: only establish WebSocket when user first opens the chatbot
+  useEffect(() => {
+    if (!isOpen) return;
+    const ws = socketRef.current;
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
     const connectWS = () => {
+      if (!isMountedRef.current) return;
       setWsStatus('connecting');
-      // Use configured WebSocket server url, default to standard local API websocket URL
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws/ai-chat';
-      
       console.log(`Connecting to AI Assistant WebSocket: ${wsUrl}`);
-      const ws = new WebSocket(wsUrl);
-      socketRef.current = ws;
+      const newWs = new WebSocket(wsUrl);
+      socketRef.current = newWs;
 
-      ws.onopen = () => {
+      newWs.onopen = () => {
+        if (!isMountedRef.current) { newWs.close(); return; }
         console.log('Connected to AI assistant WebSocket successfully.');
         setWsStatus('connected');
-        setReconnectCount(0);
+        reconnectCountRef.current = 0;
       };
 
-      ws.onmessage = (event) => {
+      newWs.onmessage = (event) => {
+        if (!isMountedRef.current) return;
         setIsThinking(false);
         const chunk = event.data;
 
         if (chunk === '[DONE]') {
-          // Finish current streaming message and lock typing state as finalized
           setMessages((prev) => {
             const last = prev[prev.length - 1];
             if (last && last.sender === 'bot') {
-              return [
-                ...prev.slice(0, -1),
-                { ...last, isStreaming: false }
-              ];
+              return [...prev.slice(0, -1), { ...last, isStreaming: false }];
             }
             return prev;
           });
           return;
         }
 
-        // Append streaming text chunk to the current active bot reply bubble
         setMessages((prev) => {
           const last = prev[prev.length - 1];
           if (last && last.sender === 'bot' && last.isStreaming) {
-            return [
-              ...prev.slice(0, -1),
-              { ...last, text: last.text + chunk }
-            ];
-          } else {
-            return [
-              ...prev,
-              { sender: 'bot', text: chunk, isStreaming: true }
-            ];
+            return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
           }
+          return [...prev, { sender: 'bot', text: chunk, isStreaming: true }];
         });
       };
 
-      ws.onclose = (e) => {
+      newWs.onclose = (e) => {
+        if (!isMountedRef.current) return;
         console.log('WebSocket connection closed:', e.code, e.reason);
         setWsStatus('disconnected');
-        
-        // Exponential backoff strategy for auto-reconnection
-        const delay = Math.min(2000 * Math.pow(2, reconnectCount), 30000);
+        const delay = Math.min(2000 * Math.pow(2, reconnectCountRef.current), 30000);
         console.log(`AI Assistant will attempt reconnection in ${delay}ms...`);
-        reconnectTimer = setTimeout(() => {
-          setReconnectCount((prev) => prev + 1);
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectCountRef.current += 1;
           connectWS();
         }, delay);
       };
 
-      ws.onerror = (err) => {
+      newWs.onerror = (err) => {
         console.error('WebSocket encountered an error:', err);
-        ws.close();
+        newWs.close();
       };
     };
 
     connectWS();
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.close();
-      }
-      clearTimeout(reconnectTimer);
-    };
-  }, [reconnectCount]);
+  }, [isOpen]);
 
   // Keep chat scrolls pinned to bottom as new content flows in
   useEffect(() => {

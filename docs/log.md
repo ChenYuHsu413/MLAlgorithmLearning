@@ -130,3 +130,123 @@ git commit -m "fix: ignore quiz answer selections once correct answer is chosen"
 # 推送至遠端
 git push
 ```
+
+---
+
+## 7. 第六階段（2026-06-08）：全端審查、立即修復與元件拆分重構
+
+### 7.1 使用者指令
+```
+你好
+可以幫我看一下這份專案嗎，先全部看過一次架構
+依照你的觀點，你有什麼好的建議或改進嗎？
+  以一個全端工程師還有身兼UX/UI設計師的視角去分析
+可以幫我把立即跟近期的修改都處理嗎
+可以幫我把中長期的第一個也一起處理嗎（index.js 元件拆分）
+先幫我把我的指令還有你的回覆都存到log.md裡面，生成工作報告，然後推送到github上面
+```
+
+### 7.2 AI 分析重點（全端工程師 + UX/UI 視角）
+
+**立即問題：**
+- CORS `allow_origins=["*"]` 開放過廣，有安全風險
+- WebSocket 在頁面載入時即建立連線，即使聊天視窗未開啟（資源浪費）
+- Quiz 作答進度未持久化，重新整理後全部消失
+
+**近期問題：**
+- SVG 動畫無說明文字，使用者看不懂動畫在演示什麼
+- AI Provider 切換訊息對一般使用者不友善
+
+**中長期問題：**
+- `index.js` 體積 2099 行，難以維護
+- 演算法資料分散三處（meta / ALGORITHMS / algorithmReport.js），無單一來源
+
+### 7.3 立即修復：CORS 限縮
+```python
+# backend/main.py：從 wildcard 改為讀取環境變數
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, ...)
+```
+```yaml
+# render.yaml：新增 ALLOWED_ORIGINS 欄位（部署時填入前端實際網域）
+envVars:
+  - key: ALLOWED_ORIGINS
+    sync: false
+```
+
+### 7.4 近期修復：WebSocket Lazy Connect
+```typescript
+// AIChatbot.tsx：移除頁面載入即連線，改為用戶第一次開啟 chatbot 才連線
+useEffect(() => {
+  if (!isOpen) return;  // ← 新增這個 guard
+  const ws = socketRef.current;
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  connectWS();
+}, [isOpen]);
+```
+
+### 7.5 近期修復：Quiz 進度 localStorage 持久化
+```javascript
+// frontend/pages/index.js
+const [answers, setAnswers] = useState(() => {
+  if (typeof window === 'undefined') return {};
+  try {
+    const stored = window.localStorage.getItem('ml-quiz-answers');
+    return stored ? JSON.parse(stored) : {};
+  } catch { return {}; }
+});
+
+useEffect(() => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem('ml-quiz-answers', JSON.stringify(answers));
+}, [answers]);
+```
+
+### 7.6 近期修復：SVG 動畫說明文字
+```javascript
+// 新增 animationDescriptions 物件，每個演算法 5 個幀各有說明
+// 在視覺化面板顯示「步驟 N/5 + 說明文字」
+{animationDescriptions[active.id] && (
+  <p className="animDesc">
+    <span className="animStep">步驟 {(simulationRun % 5) + 1}/5</span>
+    {animationDescriptions[active.id][simulationRun % 5]}
+  </p>
+)}
+```
+
+### 7.7 中長期重構：index.js 元件拆分（2099 行 → 950 行）
+
+**新建檔案：**
+```bash
+# 資料層
+frontend/lib/algorithmData.js        # meta、animationDescriptions、implementationExamples 等
+
+# 元件層
+frontend/components/MiniChart.jsx        # SVG 互動動畫元件
+frontend/components/HeroIllustration.jsx # Hero 區塊插圖
+frontend/components/VisualPanel.jsx      # 互動式視覺化面板
+frontend/components/CodePanel.jsx        # 實作範例面板
+frontend/components/QuizPanel.jsx        # 小測驗面板
+frontend/components/DetailModal.jsx      # 演算法完整說明 Modal
+```
+
+**Git 提交指令：**
+```bash
+git add backend/main.py render.yaml
+git add frontend/components/AIChatbot.tsx
+git add frontend/pages/index.js
+git add frontend/lib/algorithmData.js
+git add frontend/components/MiniChart.jsx
+git add frontend/components/HeroIllustration.jsx
+git add frontend/components/VisualPanel.jsx
+git add frontend/components/CodePanel.jsx
+git add frontend/components/QuizPanel.jsx
+git add frontend/components/DetailModal.jsx
+git add docs/log.md docs/工作報告.md
+
+git commit -m "refactor: split index.js into components, fix CORS/WS/quiz persistence, add animation descriptions"
+
+git push
+```

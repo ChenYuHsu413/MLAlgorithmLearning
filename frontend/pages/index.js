@@ -1,769 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { reportGuide, reportInsights } from '../lib/algorithmReport';
+import { meta, implementationExamples, filters, executionResults, enrich, chartType } from '../lib/algorithmData';
 import AIChatbot from '../components/AIChatbot';
+import MiniChart from '../components/MiniChart';
+import HeroIllustration from '../components/HeroIllustration';
+import VisualPanel from '../components/VisualPanel';
+import CodePanel from '../components/CodePanel';
+import QuizPanel from '../components/QuizPanel';
+import DetailModal from '../components/DetailModal';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
-const meta = {
-  0: { shortName: '線性迴歸', category: '監督式', task: '迴歸', level: '入門', color: '#ef4444', code: 'LR', concept: '用最佳直線描述特徵與連續數值之間的關係。', bestFor: '房價預測、銷售額、趨勢估計', quiz: ['線性迴歸最適合預測什麼？', ['連續數值', '資料群中心', '圖像邊緣'], 0] },
-  1: { shortName: '邏輯迴歸', category: '監督式', task: '分類', level: '入門', color: '#f97316', code: 'LG', concept: '把線性分數轉成機率，常用於二元分類。', bestFor: '垃圾郵件、是否違約、是否罹病', quiz: ['邏輯迴歸輸出的核心意義是什麼？', ['類別機率', '樹的深度', '主成分方向'], 0] },
-  2: { shortName: '決策樹', category: '監督式', task: '分類', level: '入門', color: '#eab308', code: 'DT', concept: '用條件分支一步步切分資料，形成容易解釋的規則。', bestFor: '規則清楚、需要解釋的決策問題', quiz: ['決策樹最直觀的優勢是什麼？', ['決策流程易解釋', '永遠不會過擬合', '不需要資料'], 0] },
-  3: { shortName: '隨機森林', category: '集成', task: '分類/迴歸', level: '中階', color: '#22c55e', code: 'RF', concept: '組合多棵決策樹，用投票或平均提升穩定性。', bestFor: '高維資料、穩健預測、特徵多的任務', quiz: ['隨機森林如何整合分類結果？', ['投票', '只選第一棵樹', '刪除分支'], 0] },
-  4: { shortName: '支援向量機', category: '監督式', task: '分類', level: '中階', color: '#3b82f6', code: 'SV', concept: '尋找最大間隔的分隔邊界，也能處理非線性資料。', bestFor: '中小型高維分類問題', quiz: ['SVM 主要追求最大化什麼？', ['類別間隔', '資料筆數', '群中心數量'], 0] },
-  5: { shortName: 'K近鄰', category: '監督式', task: '分類/迴歸', level: '入門', color: '#6366f1', code: 'KN', concept: '找出最相近的 K 個樣本，再投票或平均。', bestFor: '相似性推薦、資料量較小的分類', quiz: ['KNN 預測時主要依賴什麼？', ['鄰近樣本', '反向傳播', '隨機森林'], 0] },
-  6: { shortName: '朴素貝葉斯', category: '監督式', task: '分類', level: '入門', color: '#a855f7', code: 'NB', concept: '用貝葉斯定理估計類別機率，假設特徵條件獨立。', bestFor: '文字分類、垃圾郵件過濾', quiz: ['朴素貝葉斯常見假設是什麼？', ['條件獨立', '完全線性', '無需類別'], 0] },
-  7: { shortName: 'K-Means 聚類', category: '非監督式', task: '聚類', level: '入門', color: '#06b6d4', code: 'KM', concept: '反覆分配資料到 K 個群，並更新每個群的中心。', bestFor: '客戶分群、市場區隔、探索資料', quiz: ['K-Means 執行前通常要指定什麼？', ['K 值', '標籤答案', '樹深度'], 0] },
-  8: { shortName: '主成分分析', category: '非監督式', task: '降維', level: '中階', color: '#8b5cf6', code: 'PC', concept: '找出保留最多變異的方向，把高維資料壓縮到低維。', bestFor: '資料視覺化、降維、去雜訊', quiz: ['PCA 的主要目的通常是什麼？', ['降維', '增加標籤', '產生決策樹'], 0] },
-  9: { shortName: '神經網路', category: '深度學習', task: '分類/生成', level: '進階', color: '#f97316', code: 'NN', concept: '透過多層神經元學習複雜非線性映射。', bestFor: '影像、語音、自然語言', quiz: ['神經網路擅長處理哪類關係？', ['複雜非線性', '只能直線', '固定群中心'], 0] },
-};
-
-const implementationExamples = {
-  0: {
-    title: '房價預測：用面積預測價格',
-    library: 'scikit-learn / LinearRegression',
-    steps: ['準備連續型目標值', '切分訓練與測試資料', 'fit 後用 predict 產生價格預測'],
-    code: `from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
-
-X = houses[['area', 'rooms', 'age']]
-y = houses['price']
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-model = LinearRegression()
-model.fit(X_train, y_train)
-
-predictions = model.predict(X_test)`,
-  },
-  1: {
-    title: '垃圾郵件分類：預測 spam / not spam',
-    library: 'scikit-learn / LogisticRegression',
-    steps: ['把文字轉成特徵矩陣', '訓練分類器', '輸出類別與機率'],
-    code: `from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(emails)
-
-model = LogisticRegression(max_iter=1000)
-model.fit(X, labels)
-
-probability = model.predict_proba(vectorizer.transform(new_emails))
-classes = model.predict(vectorizer.transform(new_emails))`,
-  },
-  2: {
-    title: '貸款風險：用規則樹判斷是否違約',
-    library: 'scikit-learn / DecisionTreeClassifier',
-    steps: ['選擇可解釋特徵', '限制 max_depth 避免過擬合', '檢視樹的分裂規則'],
-    code: `from sklearn.tree import DecisionTreeClassifier
-
-X = applicants[['income', 'credit_score', 'debt_ratio']]
-y = applicants['defaulted']
-
-model = DecisionTreeClassifier(max_depth=4, random_state=42)
-model.fit(X, y)
-
-risk = model.predict(new_applicants)`,
-  },
-  3: {
-    title: '疾病風險：多棵樹投票提高穩定性',
-    library: 'scikit-learn / RandomForestClassifier',
-    steps: ['準備多個臨床特徵', '訓練多棵決策樹', '查看 feature_importances_'],
-    code: `from sklearn.ensemble import RandomForestClassifier
-
-X = patients[['blood_pressure', 'cholesterol', 'age', 'bmi']]
-y = patients['has_disease']
-
-model = RandomForestClassifier(n_estimators=200, random_state=42)
-model.fit(X, y)
-
-diagnosis = model.predict(new_patients)
-importance = model.feature_importances_`,
-  },
-  4: {
-    title: '手寫數字分類：用最大間隔分出類別',
-    library: 'scikit-learn / SVC',
-    steps: ['標準化特徵', '選擇 kernel', '調整 C 與 gamma'],
-    code: `from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.svm import SVC
-
-model = make_pipeline(
-    StandardScaler(),
-    SVC(kernel='rbf', C=1.0, gamma='scale')
-)
-
-model.fit(X_train, y_train)
-digits = model.predict(X_test)`,
-  },
-  5: {
-    title: '推薦系統：找出最相似的鄰居',
-    library: 'scikit-learn / KNeighborsClassifier',
-    steps: ['先做特徵尺度正規化', '選擇 K 值', '用鄰近樣本投票'],
-    code: `from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.neighbors import KNeighborsClassifier
-
-model = make_pipeline(
-    StandardScaler(),
-    KNeighborsClassifier(n_neighbors=5)
-)
-
-model.fit(user_features, user_labels)
-recommendation_group = model.predict(new_users)`,
-  },
-  6: {
-    title: '新聞分類：用詞彙機率判斷主題',
-    library: 'scikit-learn / MultinomialNB',
-    steps: ['把文字轉成詞頻特徵', '訓練貝葉斯分類器', '快速預測新文本類別'],
-    code: `from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
-
-vectorizer = CountVectorizer()
-X = vectorizer.fit_transform(news_texts)
-
-model = MultinomialNB()
-model.fit(X, topics)
-
-topic = model.predict(vectorizer.transform(new_articles))`,
-  },
-  7: {
-    title: '客戶分群：找出相似消費行為',
-    library: 'scikit-learn / KMeans',
-    steps: ['設定 K 群數量', 'fit 後取得 cluster labels', '分析各群特徵'],
-    code: `from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-
-X = customers[['avg_spend', 'visit_count', 'coupon_usage']]
-X_scaled = StandardScaler().fit_transform(X)
-
-model = KMeans(n_clusters=4, random_state=42, n_init='auto')
-segments = model.fit_predict(X_scaled)
-
-customers['segment'] = segments`,
-  },
-  8: {
-    title: '資料視覺化：把高維資料降到 2D',
-    library: 'scikit-learn / PCA',
-    steps: ['先標準化資料', '設定 n_components', '投影到低維空間'],
-    code: `from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-
-X_scaled = StandardScaler().fit_transform(features)
-
-pca = PCA(n_components=2)
-points_2d = pca.fit_transform(X_scaled)
-
-explained = pca.explained_variance_ratio_`,
-  },
-  9: {
-    title: '影像分類：用多層神經網路學特徵',
-    library: 'TensorFlow / Keras',
-    steps: ['定義網路層', '設定 loss 與 optimizer', '用 epochs 訓練模型'],
-    code: `import tensorflow as tf
-
-model = tf.keras.Sequential([
-    tf.keras.layers.Flatten(input_shape=(28, 28)),
-    tf.keras.layers.Dense(128, activation='relu'),
-    tf.keras.layers.Dense(10, activation='softmax')
-])
-
-model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
-
-model.fit(x_train, y_train, epochs=8, validation_split=0.2)`,
-  },
-};
-
-const filters = ['全部', '監督式', '非監督式', '集成', '深度學習'];
-
-const executionResults = {
-  0: ['模型完成訓練', 'RMSE: 18423.7', '預測價格: [312000, 428500, 515200]'],
-  1: ['模型完成訓練', 'Accuracy: 0.91', 'Spam probability: 0.82'],
-  2: ['決策樹已建立', 'Tree depth: 4', 'Accuracy: 0.88'],
-  3: ['森林投票完成', 'Accuracy: 0.94', 'Top feature: credit_score'],
-  4: ['最佳分隔超平面已更新', 'F1-score: 0.92', 'Support vectors: 37'],
-  5: ['鄰近點搜尋完成', 'K=5', 'Accuracy: 0.87'],
-  6: ['機率表已估計', 'Accuracy: 0.89', 'Predicted topic: technology'],
-  7: ['群中心重新配置完成', 'Clusters: 4', 'Silhouette: 0.62'],
-  8: ['投影完成', 'Explained variance: 78%', 'Output shape: (120, 2)'],
-  9: ['模型完成 8 epochs 訓練', 'Validation accuracy: 0.96', 'Loss: 0.11'],
-};
-
-function enrich(algo) {
-  return { ...algo, ...meta[algo.id] };
-}
-
-function MiniChart({ type, color, stateIndex = 0, algoId }) {
-  const s = stateIndex % 5;
-  let content = null;
-
-  if (algoId === 0) {
-    // 0: Linear Regression (straight lines with changing slopes and scattered points)
-    const lrStates = [
-      { d: "M14 62 L88 38", dots: ['18,65', '30,58', '42,60', '56,42', '68,44', '80,30'] },
-      { d: "M14 68 L88 20", dots: ['16,65', '26,55', '38,50', '50,35', '65,30', '80,25'] },
-      { d: "M14 74 L88 10", dots: ['15,72', '28,58', '42,46', '55,34', '68,26', '80,12'] },
-      { d: "M14 18 L88 66", dots: ['18,22', '32,30', '44,28', '58,48', '70,54', '80,60'] },
-      { d: "M14 45 L88 45", dots: ['18,48', '30,42', '44,46', '56,44', '68,48', '80,42'] }
-    ];
-    const state = lrStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <path className="line" d={state.d} />
-        {state.dots.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-      </>
-    );
-  } else if (algoId === 1) {
-    // 1: Logistic Regression (Sigmoid S-curves separating binary classes)
-    const lgStates = [
-      { d: "M14 60 C35 60 45 20 88 20", blues: ['15,58', '25,60', '35,56'], warms: ['55,24', '68,20', '80,22'] },
-      { d: "M14 62 C42 62 48 18 88 18", blues: ['15,62', '28,60', '38,62'], warms: ['52,18', '70,20', '82,18'] },
-      { d: "M14 65 C48 65 52 15 88 15", blues: ['16,65', '30,65', '44,65'], warms: ['56,15', '70,15', '80,15'] },
-      { d: "M14 62 C50 62 62 18 88 18", blues: ['18,62', '32,62', '46,62'], warms: ['72,18', '82,18'] },
-      { d: "M14 62 C26 62 38 18 88 18", blues: ['15,62'], warms: ['28,18', '40,18', '54,18', '68,18', '80,18'] }
-    ];
-    const state = lgStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <path className="line" d={state.d} />
-        {state.blues.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-        {state.warms.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" className="warm" />;
-        })}
-      </>
-    );
-  } else if (algoId === 2) {
-    // 2: Decision Tree
-    const treeStates = [
-      { paths: ["M50 12 L28 34 L18 58 M28 34 L40 58 M50 12 L72 34 L62 58 M72 34 L84 58"], nodes: [
-        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
-        { cx: 28, cy: 34, opacity: 1, type: 'rect' }, { cx: 72, cy: 34, opacity: 1, type: 'rect' },
-        { cx: 18, cy: 58, opacity: 1, type: 'circle' }, { cx: 40, cy: 58, opacity: 1, type: 'circle' },
-        { cx: 62, cy: 58, opacity: 1, type: 'circle' }, { cx: 84, cy: 58, opacity: 1, type: 'circle' }
-      ] },
-      { paths: ["M50 12 L28 34 L18 58 M28 34 L40 58"], nodes: [
-        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
-        { cx: 28, cy: 34, opacity: 1, type: 'rect' }, { cx: 72, cy: 34, opacity: 0.25, type: 'rect' },
-        { cx: 18, cy: 58, opacity: 1, type: 'circle' }, { cx: 40, cy: 58, opacity: 1, type: 'circle' },
-        { cx: 62, cy: 58, opacity: 0.25, type: 'circle' }, { cx: 84, cy: 58, opacity: 0.25, type: 'circle' }
-      ] },
-      { paths: ["M50 12 L72 34 L62 58 M72 34 L84 58"], nodes: [
-        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
-        { cx: 28, cy: 34, opacity: 0.25, type: 'rect' }, { cx: 72, cy: 34, opacity: 1, type: 'rect' },
-        { cx: 18, cy: 58, opacity: 0.25, type: 'circle' }, { cx: 40, cy: 58, opacity: 0.25, type: 'circle' },
-        { cx: 62, cy: 58, opacity: 1, type: 'circle' }, { cx: 84, cy: 58, opacity: 1, type: 'circle' }
-      ] },
-      { paths: ["M50 12 L28 34 M50 12 L72 34"], nodes: [
-        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
-        { cx: 28, cy: 34, opacity: 1, type: 'rect' }, { cx: 72, cy: 34, opacity: 1, type: 'rect' }
-      ] },
-      { paths: ["M50 12 L28 34 L40 58 M50 12 L72 34 L62 58"], nodes: [
-        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
-        { cx: 28, cy: 34, opacity: 1, type: 'rect' }, { cx: 72, cy: 34, opacity: 1, type: 'rect' },
-        { cx: 40, cy: 58, opacity: 1, type: 'circle' }, { cx: 62, cy: 58, opacity: 1, type: 'circle' }
-      ] }
-    ];
-    const state = treeStates[s];
-    content = (
-      <>
-        {state.paths.map((p, i) => <path key={i} d={p} />)}
-        {state.nodes.map((node, i) => {
-          if (node.type === 'rect') return <rect key={i} x={node.cx - 4} y={node.cy - 4} width="8" height="8" rx="1.5" ry="1.5" style={{ opacity: node.opacity }} />;
-          return <circle key={i} cx={node.cx} cy={node.cy} r="4" style={{ opacity: node.opacity }} />;
-        })}
-      </>
-    );
-  } else if (algoId === 3) {
-    // 3: Random Forest
-    const rfStates = [
-      { paths: ["M50 12 L30 36 L18 60 M30 36 L42 60 M50 12 L70 36"], nodes: [
-        { cx: 50, cy: 12, type: 'rect', opacity: 1 }, { cx: 30, cy: 36, type: 'rect', opacity: 1 }, { cx: 70, cy: 36, type: 'rect', opacity: 0.3 },
-        { cx: 18, cy: 60, type: 'circle', opacity: 1 }, { cx: 42, cy: 60, type: 'circle', opacity: 1 }
-      ] },
-      { paths: ["M50 12 L30 36 M50 12 L70 36 L58 60 M70 36 L82 60"], nodes: [
-        { cx: 50, cy: 12, type: 'rect', opacity: 1 }, { cx: 30, cy: 36, type: 'rect', opacity: 0.3 }, { cx: 70, cy: 36, type: 'rect', opacity: 1 },
-        { cx: 58, cy: 60, type: 'circle', opacity: 1 }, { cx: 82, cy: 60, type: 'circle', opacity: 1 }
-      ] },
-      { paths: ["M50 12 L30 36 L42 60 M50 12 L70 36 L58 60"], nodes: [
-        { cx: 50, cy: 12, type: 'rect', opacity: 1 }, { cx: 30, cy: 36, type: 'rect', opacity: 1 }, { cx: 70, cy: 36, type: 'rect', opacity: 1 },
-        { cx: 42, cy: 60, type: 'circle', opacity: 1 }, { cx: 58, cy: 60, type: 'circle', opacity: 1 }
-      ] },
-      { paths: ["M50 12 L30 36 L18 60 M50 12 L70 36 L82 60"], nodes: [
-        { cx: 50, cy: 12, type: 'rect', opacity: 1 }, { cx: 30, cy: 36, type: 'rect', opacity: 1 }, { cx: 70, cy: 36, type: 'rect', opacity: 1 },
-        { cx: 18, cy: 60, type: 'circle', opacity: 1 }, { cx: 82, cy: 60, type: 'circle', opacity: 1 }
-      ] },
-      { paths: ["M50 12 L30 36 L18 60 M30 36 L42 60 M50 12 L70 36 L58 60 M70 36 L82 60"], nodes: [
-        { cx: 50, cy: 12, type: 'rect', opacity: 1 }, { cx: 30, cy: 36, type: 'rect', opacity: 1 }, { cx: 70, cy: 36, type: 'rect', opacity: 1 },
-        { cx: 18, cy: 60, type: 'circle', opacity: 1 }, { cx: 42, cy: 60, type: 'circle', opacity: 1 },
-        { cx: 58, cy: 60, type: 'circle', opacity: 1 }, { cx: 82, cy: 60, type: 'circle', opacity: 1 }
-      ] }
-    ];
-    const state = rfStates[s];
-    content = (
-      <>
-        {state.paths.map((p, i) => <path key={i} d={p} />)}
-        {state.nodes.map((node, i) => {
-          if (node.type === 'rect') return <rect key={i} x={node.cx - 4} y={node.cy - 4} width="8" height="8" rx="1.5" ry="1.5" style={{ opacity: node.opacity }} />;
-          return <circle key={i} cx={node.cx} cy={node.cy} r="4" style={{ opacity: node.opacity }} />;
-        })}
-      </>
-    );
-  } else if (algoId === 4) {
-    // 4: SVM
-    const svmStates = [
-      { d: "M14 60 L88 20", d1: "M14 48 L88 8", d2: "M14 72 L88 32", blues: ['18,74', '28,68', '35,76'], warms: ['65,15', '75,22', '82,12'] },
-      { d: "M14 55 L88 25", d1: "M14 45 L88 15", d2: "M14 65 L88 35", blues: ['18,72', '26,62', '34,70'], warms: ['68,18', '76,23', '84,14'] },
-      { d: "M14 50 L88 30", d1: "M14 36 L88 16", d2: "M14 64 L88 44", blues: ['16,74', '26,68', '35,76'], warms: ['65,12', '74,22', '82,10'] },
-      { d: "M14 64 L88 16", d1: "M14 54 L88 6", d2: "M14 74 L88 26", blues: ['18,76', '26,72', '35,76'], warms: ['68,14', '76,20', '84,10'] },
-      { d: "M 20 40 A 28 28 0 1 1 76 40 A 28 28 0 1 1 20 40", d1: "M 25 40 A 23 23 0 1 1 71 40 A 23 23 0 1 1 25 40", d2: "M 15 40 A 33 33 0 1 1 81 40 A 33 33 0 1 1 15 40", blues: ['42,38', '50,44', '48,32'], warms: ['12,20', '85,25', '80,62'] }
-    ];
-    const state = svmStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <path d={state.d1} style={{ strokeDasharray: '2,2', strokeWidth: 1.2, opacity: 0.7 }} />
-        <path d={state.d2} style={{ strokeDasharray: '2,2', strokeWidth: 1.2, opacity: 0.7 }} />
-        <path className="line" d={state.d} />
-        {state.blues.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-        {state.warms.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" className="warm" />;
-        })}
-      </>
-    );
-  } else if (algoId === 5) {
-    // 5: KNN
-    const knnStates = [
-      { target: [48, 44], kRadius: 10, blues: ['45,40', '32,54', '60,32'], warms: ['56,48', '35,32', '62,56'] },
-      { target: [48, 44], kRadius: 18, blues: ['45,40', '32,54', '60,32'], warms: ['56,48', '35,32', '62,56'] },
-      { target: [48, 44], kRadius: 26, blues: ['45,40', '32,54', '60,32'], warms: ['56,48', '35,32', '62,56'] },
-      { target: [38, 38], kRadius: 16, blues: ['32,36', '42,42', '24,46'], warms: ['56,48', '50,30', '26,24'] },
-      { target: [58, 48], kRadius: 16, blues: ['52,44', '64,52', '62,38'], warms: ['70,54', '48,56', '54,62'] }
-    ];
-    const state = knnStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <circle cx={state.target[0]} cy={state.target[1]} r={state.kRadius} style={{ fill: 'none', stroke: '#94a3b8', strokeDasharray: '3,3', strokeWidth: 1.5 }} />
-        <circle cx={state.target[0]} cy={state.target[1]} r="5" style={{ fill: '#a855f7', stroke: '#7e22ce', strokeWidth: 1.5 }} />
-        <circle cx={state.target[0]} cy={state.target[1]} r="1.8" style={{ fill: '#fff' }} />
-        {state.blues.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-        {state.warms.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" className="warm" />;
-        })}
-      </>
-    );
-  } else if (algoId === 6) {
-    // 6: Naive Bayes
-    const nbStates = [
-      { d1: "M12 68 C25 68 35 15 50 68", d2: "M50 68 C65 15 75 68 88 68", split: 50 },
-      { d1: "M12 68 C22 68 30 25 45 68", d2: "M45 68 C60 10 70 68 88 68", split: 45 },
-      { d1: "M12 68 C26 68 38 10 55 68", d2: "M55 68 C70 25 78 68 88 68", split: 55 },
-      { d1: "M12 68 C25 68 35 32 50 68", d2: "M50 68 C62 8 72 68 88 68", split: 48 },
-      { d1: "M12 68 C20 68 32 8 48 68", d2: "M48 68 C62 36 72 68 88 68", split: 52 }
-    ];
-    const state = nbStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <path d={state.d1} style={{ fill: 'none', stroke: '#3b82f6', strokeWidth: 2.5 }} />
-        <path d={state.d2} style={{ fill: 'none', stroke: '#fb923c', strokeWidth: 2.5 }} />
-        <line x1={state.split} y1="12" x2={state.split} y2="68" style={{ stroke: '#94a3b8', strokeDasharray: '3,3', strokeWidth: 1.5 }} />
-      </>
-    );
-  } else if (algoId === 7) {
-    // 7: K-Means
-    const clusterStates = [
-      {
-        blues: [{ cx: 16, cy: 28 }, { cx: 25, cy: 37 }, { cx: 32, cy: 46 }, { cx: 66, cy: 24 }, { cx: 75, cy: 36 }, { cx: 82, cy: 48 }],
-        warms: [{ cx: 42, cy: 56 }, { cx: 50, cy: 58 }, { cx: 57, cy: 60 }]
-      },
-      {
-        blues: [{ cx: 18, cy: 26 }, { cx: 22, cy: 34 }, { cx: 28, cy: 38 }, { cx: 70, cy: 24 }, { cx: 74, cy: 32 }, { cx: 80, cy: 28 }],
-        warms: [{ cx: 44, cy: 52 }, { cx: 48, cy: 55 }, { cx: 52, cy: 58 }]
-      },
-      {
-        blues: [{ cx: 20, cy: 25 }, { cx: 22, cy: 29 }, { cx: 25, cy: 31 }, { cx: 72, cy: 22 }, { cx: 75, cy: 26 }, { cx: 78, cy: 24 }],
-        warms: [{ cx: 46, cy: 48 }, { cx: 48, cy: 51 }, { cx: 50, cy: 53 }]
-      },
-      {
-        blues: [{ cx: 21, cy: 24 }, { cx: 22, cy: 26 }, { cx: 23, cy: 25 }, { cx: 74, cy: 23 }, { cx: 75, cy: 25 }, { cx: 76, cy: 24 }],
-        warms: [{ cx: 47, cy: 49 }, { cx: 48, cy: 50 }, { cx: 49, cy: 49 }]
-      },
-      {
-        blues: [{ cx: 25, cy: 45 }, { cx: 28, cy: 48 }, { cx: 31, cy: 46 }, { cx: 65, cy: 45 }, { cx: 68, cy: 49 }, { cx: 71, cy: 47 }],
-        warms: [{ cx: 48, cy: 25 }, { cx: 50, cy: 27 }, { cx: 52, cy: 26 }]
-      }
-    ];
-    const state = clusterStates[s];
-    content = (
-      <>
-        {state.blues.map((dot, index) => (
-          <circle key={`blue-${index}`} cx={dot.cx} cy={dot.cy} r="4.5" />
-        ))}
-        {state.warms.map((dot, index) => (
-          <circle key={`warm-${index}`} cx={dot.cx} cy={dot.cy} r="4.5" className="warm" />
-        ))}
-      </>
-    );
-  } else if (algoId === 8) {
-    // 8: PCA
-    const pcaStates = [
-      { pc1: "M48 48 L76 26", pc2: "M48 48 L34 30", dots: ['32,58', '40,46', '46,54', '56,36', '68,34', '74,22'], proj: [] },
-      { pc1: "M20 70 L80 10", pc2: "", dots: ['30,50', '42,32', '52,48', '60,20', '72,35', '80,12'], proj: [
-        { x1: 30, y1: 50, x2: 44, y2: 46 }, { x1: 42, y1: 32, x2: 50, y2: 40 }, { x1: 52, y1: 48, x2: 59, y2: 31 }, { x1: 60, y1: 20, x2: 62, y2: 28 }, { x1: 72, y1: 35, x2: 74, y2: 16 }
-      ] },
-      { pc1: "M12 40 H88", pc2: "", dots: ['24,40', '36,40', '48,40', '60,40', '72,40', '82,40'], proj: [] },
-      { pc1: "M50 48 L80 40", pc2: "M50 48 L44 20", dots: ['42,46', '52,50', '64,36', '70,44', '80,30'], proj: [] },
-      { pc1: "", pc2: "", dots: [], bars: [45, 18, 5], proj: [] }
-    ];
-    const state = pcaStates[s];
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        {state.proj.map((line, i) => (
-          <line key={i} x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} style={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '2,2' }} />
-        ))}
-        {state.pc1 && <path d={state.pc1} style={{ stroke: '#fb923c', strokeWidth: 2.5 }} />}
-        {state.pc2 && <path d={state.pc2} style={{ stroke: '#94a3b8', strokeWidth: 1.8 }} />}
-        {state.dots.map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-        {state.bars && state.bars.map((h, i) => (
-          <rect key={i} x={25 + i * 20} y={68 - h} width="12" height={h} rx="2" ry="2" />
-        ))}
-      </>
-    );
-  } else if (algoId === 9) {
-    // 9: Neural Network
-    const networkStates = [
-      [1, 1, 1, 1, 1, 1, 1, 1],
-      [1, 0.2, 0.8, 0.2, 1, 0.2, 0.8, 0.1],
-      [0.2, 1, 0.2, 0.8, 0.2, 1, 0.1, 0.9],
-      [0.9, 0.9, 0.1, 0.1, 0.9, 0.1, 0.9, 0.1],
-      [1, 0.1, 0.1, 0.9, 1, 0.1, 0.1, 0.9]
-    ];
-    const currentNetworkOpacities = networkStates[s];
-    const networkConnections = [
-      "M18 18 L50 30", "M50 30 L82 18", "M18 40 L50 30", "M50 30 L82 40",
-      "M18 62 L50 52", "M50 52 L82 62", "M50 30 L82 62", "M50 52 L82 18"
-    ];
-    content = (
-      <>
-        {networkConnections.map((d, i) => (
-          <path
-            key={i}
-            d={d}
-            style={{ opacity: currentNetworkOpacities[i], strokeWidth: currentNetworkOpacities[i] > 0.5 ? 2.5 : 1.2 }}
-          />
-        ))}
-        {[18, 18, 18, 50, 50, 82, 82, 82].map((x, index) => (
-          <circle key={index} cx={x} cy={[18, 40, 62, 30, 52, 18, 40, 62][index]} r="4.5" />
-        ))}
-      </>
-    );
-  } else {
-    // Default fallback
-    content = (
-      <>
-        <path className="axis" d="M12 68 H88 M12 68 V10" />
-        <path className="line" d="M14 64 C32 54 42 46 55 36 S78 23 88 12" />
-        {['12,74', '24,62', '36,58', '48,43', '62,38', '76,24'].map((dot) => {
-          const [cx, cy] = dot.split(',');
-          return <circle key={dot} cx={cx} cy={cy} r="4" />;
-        })}
-      </>
-    );
-  }
-
-  return (
-    <svg className="miniChart" viewBox="0 0 100 80" aria-hidden="true">
-      {content}
-      <style jsx>{`
-        .miniChart {
-          width: 100%;
-          height: 82px;
-        }
-        .miniChart :global(path) {
-          fill: none;
-          stroke: ${color};
-          stroke-width: 2.2;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-        .miniChart :global(.axis) {
-          stroke: var(--chart-axis);
-          stroke-width: 2;
-        }
-        .miniChart :global(.line) {
-          stroke: ${color};
-        }
-        .miniChart :global(circle),
-        .miniChart :global(rect) {
-          fill: ${color};
-          stroke: ${color};
-          stroke-width: 0.5;
-          opacity: 0.9;
-        }
-        .miniChart :global(.warm) {
-          fill: #fb923c;
-          stroke: #ea580c;
-        }
-      `}</style>
-    </svg>
-  );
-}
-
-function HeroIllustration() {
-  const points = [
-    // Blue dots (left/above the curve)
-    ['b', 78, 72], ['b', 78, 102], ['b', 78, 132],
-    ['b', 106, 75], ['b', 106, 99], ['b', 103, 120],
-    ['b', 132, 70], ['b', 127, 95], ['b', 154, 65],
-    // Red dots (right/below the curve)
-    ['r', 198, 70], ['r', 176, 90], ['r', 155, 110],
-    ['r', 230, 92], ['r', 210, 103], ['r', 185, 125], ['r', 236, 122],
-    ['ro', 206, 125], // Orange-peach colored dot
-    ['r', 218, 140], ['r', 172, 143], ['r', 145, 140]
-  ];
-
-  const treeNodes = [
-    [50, 18], [30, 40], [70, 40], [18, 62], [42, 62], [58, 62], [82, 62],
-  ];
-
-  return (
-    <div className="heroArt" aria-hidden="true">
-      <div className="laptopScene">
-        <svg viewBox="0 0 330 230">
-          <ellipse className="deskShadow" cx="150" cy="210" rx="150" ry="13" />
-          <rect className="screenFrame" x="34" y="26" width="224" height="142" rx="9" />
-          <rect className="screen" x="46" y="38" width="200" height="116" rx="2" />
-          <circle className="camera" cx="146" cy="32" r="2" />
-          <path className="axis" d="M58 142 H234 M58 142 V50" />
-          <path className="axisTip" d="M234 142 L229 139 M234 142 L229 145 M58 50 L55 55 M58 50 L61 55" />
-          <path className="learningCurve" d="M104 142 C108 106 128 102 142 82 C154 64 154 46 170 42" />
-          {points.map(([kind, cx, cy]) => (
-            <circle key={`${kind}-${cx}-${cy}`} className={kind} cx={cx} cy={cy} r="4.8" />
-          ))}
-          <path className="keyboardBase" d="M12 172 H284 L266 194 H28 Z" />
-          <path className="trackpad" d="M118 174 H178 C176 181 171 184 164 184 H132 C125 184 120 181 118 174 Z" />
-        </svg>
-      </div>
-      <div className="heroMiniCard treeCard">
-        <svg viewBox="0 0 100 78">
-          <path d="M50 18 L30 40 L18 62 M30 40 L42 62 M50 18 L70 40 L58 62 M70 40 L82 62" />
-          {treeNodes.map(([cx, cy], index) => {
-            if (index < 3) {
-              return <rect key={`${cx}-${cy}`} x={cx - 5} y={cy - 5} width="10" height="10" rx="2" ry="2" />;
-            }
-            return <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="5" />;
-          })}
-        </svg>
-      </div>
-      <div className="heroMiniCard formulaCard">
-        <span>∑</span>
-        <b>x<sub>i</sub><sup>2</sup></b>
-      </div>
-      <div className="heroMiniCard chartCard">
-        <div className="barContainer">
-          <span className="bar blue" />
-          <span className="bar orange" />
-          <span className="bar red" />
-        </div>
-        <div className="baseline" />
-      </div>
-      <style jsx>{`
-        .heroArt {
-          min-height: 250px;
-          position: relative;
-        }
-        .laptopScene {
-          position: absolute;
-          left: 4px;
-          bottom: 0;
-          width: 330px;
-        }
-        .laptopScene svg {
-          display: block;
-          width: 100%;
-        }
-        .deskShadow {
-          fill: rgba(79, 70, 229, 0.14);
-        }
-        .screenFrame {
-          fill: #111827;
-          filter: drop-shadow(0 14px 18px rgba(30, 41, 59, 0.22));
-        }
-        .screen {
-          fill: #f8fafc;
-        }
-        .camera,
-        .trackpad {
-          fill: #334155;
-        }
-        .axis,
-        .axisTip {
-          fill: none;
-          stroke: #8b9bb6;
-          stroke-width: 1.6;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-        .learningCurve {
-          fill: none;
-          stroke: #315bdc;
-          stroke-width: 3;
-          stroke-linecap: round;
-        }
-        .keyboardBase {
-          fill: #1f2937;
-        }
-        .laptopScene svg circle.b {
-          fill: #3b82f6;
-          stroke: #1d4ed8;
-          stroke-width: 0.7;
-        }
-        .laptopScene svg circle.r {
-          fill: #ef4444;
-          stroke: #dc2626;
-          stroke-width: 0.7;
-        }
-        .laptopScene svg circle.ro {
-          fill: #fb923c;
-          stroke: #ea580c;
-          stroke-width: 0.7;
-          opacity: 0.95;
-        }
-        .heroMiniCard {
-          position: absolute;
-          display: grid;
-          place-items: center;
-          width: 100px;
-          height: 78px;
-          border-radius: 10px;
-          background: rgba(255, 255, 255, 0.92);
-          box-shadow: 0 18px 36px rgba(79, 70, 229, 0.14);
-          backdrop-filter: blur(8px);
-        }
-        .treeCard {
-          right: 0;
-          top: 0;
-        }
-        .treeCard svg {
-          width: 78px;
-          height: 58px;
-        }
-        .treeCard path {
-          fill: none;
-          stroke: #94a3b8;
-          stroke-width: 2.2;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
-        .treeCard circle,
-        .treeCard rect {
-          fill: #f59e0b;
-          stroke: #ea580c;
-          stroke-width: 0.8;
-        }
-        .formulaCard {
-          right: 34px;
-          top: 92px;
-          width: 84px;
-          height: 52px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          color: #64748b;
-          font-family: Georgia, 'Times New Roman', serif;
-        }
-        .formulaCard span {
-          font-size: 2rem;
-          line-height: 1;
-        }
-        .formulaCard b {
-          font-size: 1.25rem;
-          line-height: 1;
-        }
-        .formulaCard sup {
-          font-size: 0.68rem;
-        }
-        .formulaCard sub {
-          font-size: 0.62rem;
-          vertical-align: sub;
-          margin-left: 1px;
-          margin-right: 1px;
-        }
-        .chartCard {
-          right: 32px;
-          bottom: 12px;
-          width: 84px;
-          height: 56px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 8px;
-        }
-        .barContainer {
-          display: flex;
-          align-items: flex-end;
-          gap: 6px;
-          height: 32px;
-        }
-        .bar {
-          width: 8px;
-          border-radius: 2px 2px 0 0;
-        }
-        .bar.blue {
-          height: 14px;
-          background: #6366f1;
-        }
-        .bar.orange {
-          height: 24px;
-          background: #fb923c;
-        }
-        .bar.red {
-          height: 32px;
-          background: #f87171;
-        }
-        .baseline {
-          width: 44px;
-          height: 2px;
-          background: #94a3b8;
-          margin-top: 2px;
-          border-radius: 1px;
-        }
-      `}</style>
-    </div>
-  );
-}
 
 export default function Home() {
   const [algorithms, setAlgorithms] = useState([]);
   const [activeId, setActiveId] = useState(0);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('全部');
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const stored = window.localStorage.getItem('ml-quiz-answers');
+      return stored ? JSON.parse(stored) : {};
+    } catch { return {}; }
+  });
   const [scene, setScene] = useState('dark');
   const [error, setError] = useState('');
   const [simulationRun, setSimulationRun] = useState(0);
@@ -793,15 +52,18 @@ export default function Home() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const storedScene = window.localStorage.getItem('ml-learning-scene');
-    if (storedScene === 'light' || storedScene === 'dark') {
-      setScene(storedScene);
-    }
+    if (storedScene === 'light' || storedScene === 'dark') setScene(storedScene);
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     window.localStorage.setItem('ml-learning-scene', scene);
   }, [scene]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ml-quiz-answers', JSON.stringify(answers));
+  }, [answers]);
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -829,7 +91,6 @@ export default function Home() {
     setActiveId(algoId);
     setCodeOutput(null);
     setLearningNotice(`${selected?.shortName || '演算法'} 學習區已載入`);
-
     if (typeof window !== 'undefined') {
       window.setTimeout(() => setLearningNotice(''), 2200);
       window.requestAnimationFrame(() => {
@@ -841,7 +102,6 @@ export default function Home() {
   function runSimulation() {
     if (!active) return;
     setSimulationRun((current) => current + 1);
-
     const action = active.task.includes('分類')
       ? '分類邊界已更新'
       : active.task.includes('聚類')
@@ -849,7 +109,6 @@ export default function Home() {
         : active.task.includes('降維')
           ? '主成分投影已完成'
           : '趨勢線已重新擬合';
-
     setSimulationStatus(`${active.shortName}：${action}`);
   }
 
@@ -859,13 +118,6 @@ export default function Home() {
       title: `${active.shortName} 執行結果`,
       lines: executionResults[active.id] || ['程式碼執行完成', 'Result: ok'],
     });
-  }
-
-  function chartType(id) {
-    if ([2, 3].includes(id)) return 'tree';
-    if (id === 7) return 'cluster';
-    if (id === 9) return 'network';
-    return 'line';
   }
 
   return (
@@ -952,77 +204,28 @@ export default function Home() {
 
         {learningNotice && <p className="learningNotice">{learningNotice}</p>}
 
-        {active && (
+        {active && activeExample && (
           <section ref={labRef} className="labGrid">
-            <article className="panel visualPanel">
-              <h2>互動式可視化</h2>
-              <p>目前選擇：{active.shortName}</p>
-              <div className={`bigChart ${simulationRun ? 'isRunning' : ''}`} key={`${active.id}-${simulationRun}`}>
-                <MiniChart type={chartType(active.id)} color={active.color} stateIndex={simulationRun} algoId={active.id} />
-              </div>
-              <div className="controlBox">
-                <label>
-                  選擇演算法
-                  <select value={active.id} onChange={(event) => startLearning(Number(event.target.value))}>
-                    {algorithms.map((algo) => <option key={algo.id} value={algo.id}>{algo.shortName}</option>)}
-                  </select>
-                </label>
-                <div>
-                  <span>任務類型</span>
-                  <strong>{active.task}</strong>
-                </div>
-                <div className="simulationStats">
-                  <span><b>{simulationRun}</b> 模擬次數</span>
-                  <span><b>{Math.min(98, 82 + ((simulationRun + active.id) % 12))}%</b> 估計表現</span>
-                </div>
-                <p className="simulationStatus">{simulationStatus}</p>
-                <button type="button" onClick={runSimulation}>{simulationRun ? '重新模擬' : '開始模擬'}</button>
-              </div>
-            </article>
-
-            <article id="examples" className="panel codePanel">
-              <div className="panelHeader">
-                <div>
-                  <h2>實作範例</h2>
-                  <p>{activeExample.title}</p>
-                </div>
-                <span>{activeExample.library}</span>
-              </div>
-              <ol className="steps">
-                {activeExample.steps.map((step) => <li key={step}>{step}</li>)}
-              </ol>
-              <pre>{activeExample.code}</pre>
-              <button type="button" className="runCodeButton" onClick={executeCode}>執行程式碼</button>
-              {codeOutput && (
-                <div className="codeOutput" aria-live="polite">
-                  <strong>{codeOutput.title}</strong>
-                  {codeOutput.lines.map((line) => <code key={line}>{line}</code>)}
-                </div>
-              )}
-              <button type="button" className="detailButton" onClick={() => setShowDetails(true)}>查看完整說明</button>
-            </article>
-
-            <article className="panel quizPanel">
-              <h2>小測驗</h2>
-              <p>{active.quiz[0]}</p>
-              <div className="quizOptions">
-                {active.quiz[1].map((option, index) => {
-                  const hasAnswer = answers[active.id] !== undefined;
-                  const isCorrect = index === active.quiz[2];
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      className={hasAnswer && isCorrect ? 'correct' : ''}
-                      onClick={() => selectAnswer(active.id, index)}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-              </div>
-              {answers[active.id] !== undefined && <strong className={answers[active.id] ? 'ok' : 'no'}>{answers[active.id] ? '答對了' : '再想一下'}</strong>}
-            </article>
+            <VisualPanel
+              active={active}
+              algorithms={algorithms}
+              simulationRun={simulationRun}
+              simulationStatus={simulationStatus}
+              onSimulate={runSimulation}
+              onSelectAlgo={startLearning}
+            />
+            <CodePanel
+              activeExample={activeExample}
+              active={active}
+              codeOutput={codeOutput}
+              onExecute={executeCode}
+              onShowDetails={() => setShowDetails(true)}
+            />
+            <QuizPanel
+              active={active}
+              answers={answers}
+              onSelectAnswer={selectAnswer}
+            />
           </section>
         )}
 
@@ -1101,11 +304,7 @@ export default function Home() {
             <table>
               <thead>
                 <tr>
-                  <th>演算法</th>
-                  <th>類型</th>
-                  <th>任務</th>
-                  <th>難度</th>
-                  <th>適合情境</th>
+                  <th>演算法</th><th>類型</th><th>任務</th><th>難度</th><th>適合情境</th>
                 </tr>
               </thead>
               <tbody>
@@ -1124,50 +323,16 @@ export default function Home() {
         </section>
       </section>
 
-      {showDetails && active && activeInsight && (
-        <div className="modalLayer" role="presentation" onClick={() => setShowDetails(false)}>
-          <section className="detailModal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={(event) => event.stopPropagation()}>
-            <div className="modalHeader">
-              <div>
-                <span>{active.category}</span>
-                <h2 id="detail-title">{active.shortName} 完整說明</h2>
-              </div>
-              <button type="button" aria-label="關閉完整說明" onClick={() => setShowDetails(false)}>×</button>
-            </div>
-            <p className="modalLead">{active.concept}</p>
-            <div className="modalGrid">
-              <article>
-                <h3>適合情境</h3>
-                <p>{active.bestFor}</p>
-              </article>
-              <article>
-                <h3>核心重點</h3>
-                <p>{activeInsight.core}</p>
-              </article>
-              <article>
-                <h3>建模流程</h3>
-                <ol>
-                  {activeInsight.workflow.map((item) => <li key={item}>{item}</li>)}
-                </ol>
-              </article>
-              <article>
-                <h3>常見錯誤</h3>
-                <ul>
-                  {activeInsight.pitfalls.map((item) => <li key={item}>{item}</li>)}
-                </ul>
-              </article>
-            </div>
-            <div className="modalFooter">
-              <div className="chips">
-                {activeInsight.metrics.map((item) => <span key={item}>{item}</span>)}
-              </div>
-              <button type="button" onClick={() => setShowDetails(false)}>完成</button>
-            </div>
-          </section>
-        </div>
-      )}
+      <DetailModal
+        show={showDetails}
+        active={active}
+        activeInsight={activeInsight}
+        onClose={() => setShowDetails(false)}
+      />
+      <AIChatbot activeAlgorithmName={active?.name} />
 
       <style jsx>{`
+        /* ── Theme variables ── */
         .appShell {
           --bg: #f8fafc;
           --surface: #ffffff;
@@ -1208,6 +373,50 @@ export default function Home() {
           --code-text: #dbeafe;
           --chart-axis: #475569;
         }
+
+        /* ── Shared panel styles (global so extracted components can use them) ── */
+        :global(.panel) {
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--surface);
+          padding: 18px;
+          box-shadow: 0 8px 24px var(--shadow);
+        }
+        :global(.panel p) {
+          color: var(--muted);
+          line-height: 1.65;
+        }
+        :global(.panelHeader) {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+        }
+        :global(.panelHeader span) {
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          color: var(--accent);
+          padding: 7px 10px;
+          font-size: 0.78rem;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+        :global(.chips) {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        :global(.chips span) {
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          background: var(--surface-soft);
+          color: var(--muted-strong);
+          padding: 7px 10px;
+          font-size: 0.82rem;
+          font-weight: 700;
+        }
+
+        /* ── Sidebar ── */
         .sidebar {
           position: sticky;
           top: 0;
@@ -1298,6 +507,8 @@ export default function Home() {
           font: inherit;
           font-weight: 700;
         }
+
+        /* ── Main workspace ── */
         .workspace {
           min-width: 0;
           padding: 14px 26px 28px;
@@ -1374,6 +585,8 @@ export default function Home() {
         .ring span {
           position: relative;
         }
+
+        /* ── Hero ── */
         .hero {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 440px;
@@ -1414,6 +627,7 @@ export default function Home() {
           color: var(--text);
         }
 
+        /* ── Filter & Cards ── */
         .filterRow,
         .sectionTitle {
           display: flex;
@@ -1535,207 +749,8 @@ export default function Home() {
           gap: 18px;
           margin-bottom: 18px;
         }
-        .panel {
-          border: 1px solid var(--line);
-          border-radius: 9px;
-          background: var(--surface);
-          padding: 18px;
-          box-shadow: 0 8px 24px var(--shadow);
-        }
-        .panel p {
-          color: var(--muted);
-          line-height: 1.65;
-        }
-        .panelHeader {
-          display: flex;
-          justify-content: space-between;
-          gap: 16px;
-          align-items: flex-start;
-        }
-        .panelHeader span {
-          border: 1px solid var(--line);
-          border-radius: 999px;
-          color: var(--accent);
-          padding: 7px 10px;
-          font-size: 0.78rem;
-          font-weight: 800;
-          white-space: nowrap;
-        }
-        .bigChart {
-          height: 220px;
-          display: grid;
-          place-items: center;
-          border: 1px solid var(--line-soft);
-          border-radius: 8px;
-          background: linear-gradient(var(--surface), var(--surface-soft));
-          margin: 16px 0;
-        }
-        .bigChart :global(.miniChart) {
-          width: 82%;
-          height: 180px;
-        }
-        .bigChart.isRunning :global(.miniChart) {
-          animation: chartPulse 780ms ease-out;
-        }
-        @keyframes chartPulse {
-          0% {
-            opacity: 0.55;
-            transform: translateY(8px) scale(0.96);
-          }
-          55% {
-            opacity: 1;
-            transform: translateY(-2px) scale(1.03);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-        .controlBox {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 130px;
-          gap: 12px;
-          align-items: end;
-        }
-        .controlBox label,
-        .controlBox div {
-          display: grid;
-          gap: 8px;
-          color: var(--muted);
-          font-size: 0.88rem;
-        }
-        select {
-          height: 38px;
-          border: 1px solid var(--line);
-          border-radius: 7px;
-          padding: 0 10px;
-          background: var(--surface);
-          color: var(--text);
-        }
-        .controlBox button {
-          grid-column: 1 / -1;
-          border: 0;
-          border-radius: 7px;
-          background: var(--accent);
-          color: #fff;
-          padding: 12px;
-          cursor: pointer;
-          font: inherit;
-          font-weight: 800;
-        }
-        .simulationStats {
-          grid-column: 1 / -1;
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
-        }
-        .simulationStats span {
-          border: 1px solid var(--line-soft);
-          border-radius: 7px;
-          background: var(--surface-soft);
-          padding: 10px;
-        }
-        .simulationStats b {
-          display: block;
-          color: var(--text);
-          font-size: 1.05rem;
-        }
-        .simulationStatus {
-          grid-column: 1 / -1;
-          min-height: 24px;
-          margin: 0;
-          color: var(--accent) !important;
-          font-weight: 800;
-        }
-        .steps {
-          display: grid;
-          gap: 7px;
-          margin: 0 0 14px;
-          padding-left: 1.3rem;
-          color: var(--muted-strong);
-        }
-        .codePanel pre {
-          max-height: 340px;
-          overflow: auto;
-          border-radius: 8px;
-          background: var(--code-bg);
-          color: var(--code-text);
-          padding: 16px;
-          line-height: 1.6;
-          font-size: 0.82rem;
-        }
-        .runCodeButton {
-          width: 100%;
-          border: 0;
-          border-radius: 7px;
-          background: var(--accent);
-          color: #fff;
-          padding: 12px;
-          cursor: pointer;
-          font: inherit;
-          font-weight: 800;
-          margin-bottom: 10px;
-        }
-        .codeOutput {
-          display: grid;
-          gap: 7px;
-          border: 1px solid var(--line);
-          border-radius: 8px;
-          background: var(--surface-soft);
-          padding: 12px;
-          margin-bottom: 10px;
-        }
-        .codeOutput strong {
-          color: var(--text);
-        }
-        .codeOutput code {
-          display: block;
-          color: var(--muted-strong);
-          font-family: Consolas, Monaco, monospace;
-          font-size: 0.86rem;
-        }
-        .detailButton {
-          width: 100%;
-          display: block;
-          border: 1px solid var(--line);
-          border-radius: 7px;
-          background: var(--surface);
-          color: var(--accent);
-          text-align: center;
-          font-weight: 800;
-          padding: 11px;
-          cursor: pointer;
-          font: inherit;
-        }
-        .quizOptions {
-          display: grid;
-          gap: 8px;
-          margin: 14px 0;
-        }
-        .quizOptions button {
-          border: 1px solid var(--line);
-          border-radius: 7px;
-          background: var(--surface);
-          color: var(--text);
-          padding: 11px;
-          text-align: left;
-          cursor: pointer;
-          font: inherit;
-        }
-        .quizOptions .correct {
-          border-color: #86efac;
-          background: #dcfce7;
-          color: #14532d;
-        }
-        .ok {
-          color: #16a34a;
-        }
-        .no {
-          color: #dc2626;
-        }
-        .examplesOverview {
-          margin-bottom: 18px;
-        }
+
+        /* ── Report & Guide panels ── */
         .reportPanel,
         .guidePanel {
           margin-bottom: 18px;
@@ -1760,20 +775,6 @@ export default function Home() {
           padding-left: 1.2rem;
           color: var(--muted);
           line-height: 1.6;
-        }
-        .chips {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        .chips span {
-          border: 1px solid var(--line);
-          border-radius: 999px;
-          background: var(--surface-soft);
-          color: var(--muted-strong);
-          padding: 7px 10px;
-          font-size: 0.82rem;
-          font-weight: 700;
         }
         .flowRail {
           display: grid;
@@ -1822,103 +823,10 @@ export default function Home() {
         .metricGrid p {
           margin: 0;
         }
-        .modalLayer {
-          position: fixed;
-          inset: 0;
-          z-index: 50;
-          display: grid;
-          place-items: center;
-          background: rgba(15, 23, 42, 0.58);
-          padding: 22px;
-        }
-        .detailModal {
-          width: min(820px, 100%);
-          max-height: min(760px, calc(100vh - 44px));
-          overflow: auto;
-          border: 1px solid var(--line);
-          border-radius: 10px;
-          background: var(--surface);
-          color: var(--text);
-          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
-          padding: 22px;
-        }
-        .modalHeader {
-          display: flex;
-          justify-content: space-between;
-          gap: 18px;
-          align-items: flex-start;
-          border-bottom: 1px solid var(--line-soft);
-          padding-bottom: 16px;
-          margin-bottom: 16px;
-        }
-        .modalHeader span {
-          color: var(--accent);
-          font-weight: 800;
-          font-size: 0.86rem;
-        }
-        .modalHeader h2 {
-          margin: 5px 0 0;
-          font-size: 1.45rem;
-        }
-        .modalHeader button {
-          width: 36px;
-          height: 36px;
-          border: 1px solid var(--line);
-          border-radius: 7px;
-          background: var(--surface-soft);
-          color: var(--text);
-          cursor: pointer;
-          font-size: 1.4rem;
-          line-height: 1;
-        }
-        .modalLead {
-          color: var(--muted);
-          line-height: 1.75;
-          margin: 0 0 16px;
-        }
-        .modalGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-        }
-        .modalGrid article {
-          border: 1px solid var(--line-soft);
-          border-radius: 8px;
-          background: var(--surface-soft);
-          padding: 14px;
-        }
-        .modalGrid h3 {
-          margin: 0 0 8px;
-          font-size: 1rem;
-        }
-        .modalGrid p,
-        .modalGrid li {
-          color: var(--muted);
-          line-height: 1.65;
-        }
-        .modalGrid ol,
-        .modalGrid ul {
-          margin: 0;
-          padding-left: 1.2rem;
-        }
-        .modalFooter {
-          display: flex;
-          justify-content: space-between;
-          gap: 14px;
-          align-items: center;
-          border-top: 1px solid var(--line-soft);
-          margin-top: 16px;
-          padding-top: 16px;
-        }
-        .modalFooter button {
-          border: 0;
-          border-radius: 7px;
-          background: var(--accent);
-          color: #fff;
-          padding: 11px 18px;
-          cursor: pointer;
-          font: inherit;
-          font-weight: 800;
+
+        /* ── Examples overview & Compare ── */
+        .examplesOverview {
+          margin-bottom: 18px;
         }
         .exampleGrid {
           display: grid;
@@ -1972,6 +880,8 @@ export default function Home() {
           background: var(--surface-soft);
           font-size: 0.86rem;
         }
+
+        /* ── Responsive ── */
         @media (max-width: 1120px) {
           .appShell {
             grid-template-columns: 1fr;
@@ -2002,9 +912,6 @@ export default function Home() {
           .metricGrid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
-          .modalGrid {
-            grid-template-columns: 1fr;
-          }
         }
         @media (max-width: 680px) {
           .workspace {
@@ -2029,20 +936,15 @@ export default function Home() {
           .metricGrid {
             grid-template-columns: 1fr;
           }
-          .controlBox,
-          .panelHeader {
+          :global(.controlBox),
+          :global(.panelHeader) {
             grid-template-columns: 1fr;
           }
-          .panelHeader {
+          :global(.panelHeader) {
             display: grid;
-          }
-          .modalFooter {
-            align-items: stretch;
-            flex-direction: column;
           }
         }
       `}</style>
-      <AIChatbot activeAlgorithmName={active?.name} />
     </main>
   );
 }
