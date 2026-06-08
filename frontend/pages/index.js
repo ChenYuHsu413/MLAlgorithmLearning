@@ -16,6 +16,164 @@ const meta = {
   9: { shortName: '神經網路', category: '深度學習', task: '分類/生成', level: '進階', color: '#f97316', code: 'NN', concept: '透過多層神經元學習複雜非線性映射。', bestFor: '影像、語音、自然語言', quiz: ['神經網路擅長處理哪類關係？', ['複雜非線性', '只能直線', '固定群中心'], 0] },
 };
 
+const implementationExamples = {
+  0: {
+    title: '房價預測：用面積預測價格',
+    library: 'scikit-learn / LinearRegression',
+    steps: ['準備連續型目標值', '切分訓練與測試資料', 'fit 後用 predict 產生價格預測'],
+    code: `from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+X = houses[['area', 'rooms', 'age']]
+y = houses['price']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+predictions = model.predict(X_test)`,
+  },
+  1: {
+    title: '垃圾郵件分類：預測 spam / not spam',
+    library: 'scikit-learn / LogisticRegression',
+    steps: ['把文字轉成特徵矩陣', '訓練分類器', '輸出類別與機率'],
+    code: `from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(emails)
+
+model = LogisticRegression(max_iter=1000)
+model.fit(X, labels)
+
+probability = model.predict_proba(vectorizer.transform(new_emails))
+classes = model.predict(vectorizer.transform(new_emails))`,
+  },
+  2: {
+    title: '貸款風險：用規則樹判斷是否違約',
+    library: 'scikit-learn / DecisionTreeClassifier',
+    steps: ['選擇可解釋特徵', '限制 max_depth 避免過擬合', '檢視樹的分裂規則'],
+    code: `from sklearn.tree import DecisionTreeClassifier
+
+X = applicants[['income', 'credit_score', 'debt_ratio']]
+y = applicants['defaulted']
+
+model = DecisionTreeClassifier(max_depth=4, random_state=42)
+model.fit(X, y)
+
+risk = model.predict(new_applicants)`,
+  },
+  3: {
+    title: '疾病風險：多棵樹投票提高穩定性',
+    library: 'scikit-learn / RandomForestClassifier',
+    steps: ['準備多個臨床特徵', '訓練多棵決策樹', '查看 feature_importances_'],
+    code: `from sklearn.ensemble import RandomForestClassifier
+
+X = patients[['blood_pressure', 'cholesterol', 'age', 'bmi']]
+y = patients['has_disease']
+
+model = RandomForestClassifier(n_estimators=200, random_state=42)
+model.fit(X, y)
+
+diagnosis = model.predict(new_patients)
+importance = model.feature_importances_`,
+  },
+  4: {
+    title: '手寫數字分類：用最大間隔分出類別',
+    library: 'scikit-learn / SVC',
+    steps: ['標準化特徵', '選擇 kernel', '調整 C 與 gamma'],
+    code: `from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+
+model = make_pipeline(
+    StandardScaler(),
+    SVC(kernel='rbf', C=1.0, gamma='scale')
+)
+
+model.fit(X_train, y_train)
+digits = model.predict(X_test)`,
+  },
+  5: {
+    title: '推薦系統：找出最相似的鄰居',
+    library: 'scikit-learn / KNeighborsClassifier',
+    steps: ['先做特徵尺度正規化', '選擇 K 值', '用鄰近樣本投票'],
+    code: `from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+
+model = make_pipeline(
+    StandardScaler(),
+    KNeighborsClassifier(n_neighbors=5)
+)
+
+model.fit(user_features, user_labels)
+recommendation_group = model.predict(new_users)`,
+  },
+  6: {
+    title: '新聞分類：用詞彙機率判斷主題',
+    library: 'scikit-learn / MultinomialNB',
+    steps: ['把文字轉成詞頻特徵', '訓練貝葉斯分類器', '快速預測新文本類別'],
+    code: `from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(news_texts)
+
+model = MultinomialNB()
+model.fit(X, topics)
+
+topic = model.predict(vectorizer.transform(new_articles))`,
+  },
+  7: {
+    title: '客戶分群：找出相似消費行為',
+    library: 'scikit-learn / KMeans',
+    steps: ['設定 K 群數量', 'fit 後取得 cluster labels', '分析各群特徵'],
+    code: `from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+X = customers[['avg_spend', 'visit_count', 'coupon_usage']]
+X_scaled = StandardScaler().fit_transform(X)
+
+model = KMeans(n_clusters=4, random_state=42, n_init='auto')
+segments = model.fit_predict(X_scaled)
+
+customers['segment'] = segments`,
+  },
+  8: {
+    title: '資料視覺化：把高維資料降到 2D',
+    library: 'scikit-learn / PCA',
+    steps: ['先標準化資料', '設定 n_components', '投影到低維空間'],
+    code: `from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+X_scaled = StandardScaler().fit_transform(features)
+
+pca = PCA(n_components=2)
+points_2d = pca.fit_transform(X_scaled)
+
+explained = pca.explained_variance_ratio_`,
+  },
+  9: {
+    title: '影像分類：用多層神經網路學特徵',
+    library: 'TensorFlow / Keras',
+    steps: ['定義網路層', '設定 loss 與 optimizer', '用 epochs 訓練模型'],
+    code: `import tensorflow as tf
+
+model = tf.keras.Sequential([
+    tf.keras.layers.Flatten(input_shape=(28, 28)),
+    tf.keras.layers.Dense(128, activation='relu'),
+    tf.keras.layers.Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+model.fit(x_train, y_train, epochs=8, validation_split=0.2)`,
+  },
+};
+
 const filters = ['全部', '監督式', '非監督式', '集成', '深度學習'];
 
 function enrich(algo) {
@@ -72,7 +230,7 @@ function MiniChart({ type, color }) {
           stroke-linejoin: round;
         }
         .axis {
-          stroke: #cbd5e1;
+          stroke: var(--chart-axis);
           stroke-width: 2;
         }
         .line {
@@ -119,6 +277,7 @@ export default function Home() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('全部');
   const [answers, setAnswers] = useState({});
+  const [scene, setScene] = useState('light');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -148,6 +307,7 @@ export default function Home() {
   }, [algorithms, filter, query]);
 
   const active = algorithms.find((algo) => algo.id === activeId) || filtered[0] || algorithms[0];
+  const activeExample = active ? implementationExamples[active.id] : null;
   const done = Object.values(answers).filter(Boolean).length;
   const progress = algorithms.length ? Math.round((done / algorithms.length) * 100) : 0;
 
@@ -164,7 +324,7 @@ export default function Home() {
   }
 
   return (
-    <main className="appShell">
+    <main className={`appShell ${scene}`}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brandMark">ML</div>
@@ -183,9 +343,8 @@ export default function Home() {
             </button>
           ))}
           <span>學習資源</span>
-          <a>演算法比較</a>
-          <a>資料集</a>
-          <a>常見問題</a>
+          <a href="#examples">實作範例</a>
+          <a href="#compare">演算法比較</a>
         </nav>
         <button className="testButton" type="button">測驗中心</button>
       </aside>
@@ -197,16 +356,19 @@ export default function Home() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋演算法、概念或範例..." />
           </label>
           <div className="topActions">
+            <button type="button" className="sceneToggle" onClick={() => setScene((current) => current === 'light' ? 'dark' : 'light')}>
+              {scene === 'light' ? 'Dark Scene' : 'Light Scene'}
+            </button>
             <button type="button">學習路徑</button>
             <button type="button">進度追蹤</button>
-            <div className="ring" style={{ '--progress': `${progress}%` }}>{progress}%</div>
+            <div className="ring" style={{ '--progress': `${progress}%` }}><span>{progress}%</span></div>
           </div>
         </header>
 
         <section className="hero">
           <div className="heroCopy">
             <h1>探索機器學習的世界</h1>
-            <p>透過視覺化示意、互動實驗與實例分析，快速理解十大機器學習演算法的核心概念、工作原理與實際應用。</p>
+            <p>透過視覺化示意、互動實驗與實作範例，快速理解十大機器學習演算法的核心概念、工作原理與實際應用。</p>
             <div className="metrics">
               <span><b>10</b> 大核心演算法</span>
               <span><b>{filters.length - 1}</b> 種學習類型</span>
@@ -266,18 +428,18 @@ export default function Home() {
               </div>
             </article>
 
-            <article className="panel codePanel">
-              <h2>程式碼範例</h2>
-              <p>以 {active.shortName} 的使用情境建立簡短流程。</p>
-              <pre>{`from sklearn import model_selection
-
-# 選擇演算法：${active.shortName}
-# 任務：${active.task}
-
-data = load_dataset()
-model = build_model()
-model.fit(data.x_train, data.y_train)
-result = model.predict(data.x_test)`}</pre>
+            <article id="examples" className="panel codePanel">
+              <div className="panelHeader">
+                <div>
+                  <h2>實作範例</h2>
+                  <p>{activeExample.title}</p>
+                </div>
+                <span>{activeExample.library}</span>
+              </div>
+              <ol className="steps">
+                {activeExample.steps.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+              <pre>{activeExample.code}</pre>
               <Link href={`/algorithms/${active.id}`}>查看完整說明</Link>
             </article>
 
@@ -304,6 +466,18 @@ result = model.predict(data.x_test)`}</pre>
             </article>
           </section>
         )}
+
+        <section className="panel examplesOverview">
+          <h2>所有演算法實作索引</h2>
+          <div className="exampleGrid">
+            {algorithms.map((algo) => (
+              <button key={algo.id} type="button" onClick={() => setActiveId(algo.id)} style={{ '--accent': algo.color }}>
+                <strong>{algo.shortName}</strong>
+                <span>{implementationExamples[algo.id].title}</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section id="compare" className="panel comparePanel">
           <h2>演算法比較</h2>
@@ -336,12 +510,44 @@ result = model.predict(data.x_test)`}</pre>
 
       <style jsx>{`
         .appShell {
+          --bg: #f8fafc;
+          --surface: #ffffff;
+          --surface-soft: #f1f5f9;
+          --text: #172033;
+          --muted: #475569;
+          --muted-strong: #334155;
+          --line: #dbe3ef;
+          --line-soft: #e5e7eb;
+          --accent: #4f63f6;
+          --hero-start: #a7d7ff;
+          --hero-end: #dcd8ff;
+          --shadow: rgba(15, 23, 42, 0.05);
+          --code-bg: #172033;
+          --code-text: #e5e7eb;
+          --chart-axis: #cbd5e1;
           min-height: 100vh;
           display: grid;
           grid-template-columns: 280px minmax(0, 1fr);
-          background: #f8fafc;
-          color: #172033;
+          background: var(--bg);
+          color: var(--text);
           font-family: Arial, 'Noto Sans TC', sans-serif;
+        }
+        .appShell.dark {
+          --bg: #0b1120;
+          --surface: #111827;
+          --surface-soft: #1f2937;
+          --text: #e5e7eb;
+          --muted: #cbd5e1;
+          --muted-strong: #e2e8f0;
+          --line: #334155;
+          --line-soft: #1f2937;
+          --accent: #8b9cff;
+          --hero-start: #1e3a8a;
+          --hero-end: #581c87;
+          --shadow: rgba(0, 0, 0, 0.24);
+          --code-bg: #020617;
+          --code-text: #dbeafe;
+          --chart-axis: #475569;
         }
         .sidebar {
           position: sticky;
@@ -350,8 +556,8 @@ result = model.predict(data.x_test)`}</pre>
           display: flex;
           flex-direction: column;
           gap: 20px;
-          border-right: 1px solid #e5e7eb;
-          background: #ffffff;
+          border-right: 1px solid var(--line-soft);
+          background: var(--surface);
           padding: 18px 16px;
         }
         .brand {
@@ -366,7 +572,7 @@ result = model.predict(data.x_test)`}</pre>
           display: grid;
           place-items: center;
           border-radius: 10px;
-          background: #4f63f6;
+          background: var(--accent);
           color: #fff;
           font-weight: 800;
         }
@@ -376,7 +582,7 @@ result = model.predict(data.x_test)`}</pre>
         }
         .brand span {
           margin-top: 4px;
-          color: #64748b;
+          color: var(--muted);
           font-size: 0.84rem;
         }
         nav {
@@ -387,7 +593,7 @@ result = model.predict(data.x_test)`}</pre>
         }
         nav span {
           margin: 10px 10px 4px;
-          color: #334155;
+          color: var(--muted-strong);
           font-weight: 700;
           font-size: 0.9rem;
         }
@@ -400,7 +606,7 @@ result = model.predict(data.x_test)`}</pre>
           border: 0;
           border-radius: 7px;
           background: transparent;
-          color: #334155;
+          color: var(--muted-strong);
           padding: 8px 10px;
           text-align: left;
           text-decoration: none;
@@ -418,7 +624,7 @@ result = model.predict(data.x_test)`}</pre>
           font-size: 0.78rem;
         }
         .navActive {
-          background: #4f63f6;
+          background: var(--accent);
           color: #fff;
           font-weight: 700;
         }
@@ -426,8 +632,8 @@ result = model.predict(data.x_test)`}</pre>
           margin-top: auto;
           border: 0;
           border-radius: 7px;
-          background: #172033;
-          color: #fff;
+          background: var(--text);
+          color: var(--surface);
           padding: 13px 14px;
           cursor: pointer;
           font: inherit;
@@ -439,7 +645,7 @@ result = model.predict(data.x_test)`}</pre>
           overflow: hidden;
         }
         .topbar {
-          height: 54px;
+          min-height: 54px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -452,9 +658,9 @@ result = model.predict(data.x_test)`}</pre>
           align-items: center;
           gap: 10px;
           border-radius: 8px;
-          background: #f1f5f9;
+          background: var(--surface-soft);
           padding: 0 14px;
-          color: #64748b;
+          color: var(--muted);
         }
         .search input {
           width: 100%;
@@ -462,23 +668,30 @@ result = model.predict(data.x_test)`}</pre>
           border: 0;
           outline: 0;
           background: transparent;
+          color: var(--text);
           font-size: 0.95rem;
         }
         .topActions {
           display: flex;
           align-items: center;
-          gap: 14px;
-          color: #172033;
+          gap: 10px;
+          color: var(--text);
         }
         .topActions button {
-          border: 0;
-          background: #fff;
-          border-left: 1px solid #e5e7eb;
-          padding: 8px 12px;
-          color: #334155;
+          border: 1px solid var(--line);
+          border-radius: 7px;
+          background: var(--surface);
+          color: var(--muted-strong);
+          padding: 9px 12px;
           cursor: pointer;
           font: inherit;
           font-weight: 700;
+          white-space: nowrap;
+        }
+        .sceneToggle {
+          background: var(--text) !important;
+          border-color: var(--text) !important;
+          color: var(--surface) !important;
         }
         .ring {
           width: 52px;
@@ -486,8 +699,8 @@ result = model.predict(data.x_test)`}</pre>
           display: grid;
           place-items: center;
           border-radius: 50%;
-          background: conic-gradient(#4f63f6 var(--progress), #e5e7eb 0);
-          color: #172033;
+          background: conic-gradient(var(--accent) var(--progress), var(--line-soft) 0);
+          color: var(--text);
           font-size: 0.82rem;
           font-weight: 800;
           position: relative;
@@ -497,26 +710,10 @@ result = model.predict(data.x_test)`}</pre>
           position: absolute;
           inset: 5px;
           border-radius: 50%;
-          background: #fff;
+          background: var(--surface);
         }
-        .ring {
-          isolation: isolate;
-        }
-        .ring::after {
-          content: attr(style);
-          display: none;
-        }
-        .ring {
-          z-index: 0;
-        }
-        .ring {
-          line-height: 1;
-        }
-        .ring {
-          color: transparent;
-        }
-        .ring {
-          text-shadow: 0 0 0 #172033;
+        .ring span {
+          position: relative;
         }
         .hero {
           display: grid;
@@ -524,7 +721,7 @@ result = model.predict(data.x_test)`}</pre>
           gap: 20px;
           align-items: center;
           border-radius: 10px;
-          background: linear-gradient(110deg, #a7d7ff 0%, #dcd8ff 100%);
+          background: linear-gradient(110deg, var(--hero-start) 0%, var(--hero-end) 100%);
           padding: 34px;
           margin-bottom: 22px;
           overflow: hidden;
@@ -536,7 +733,7 @@ result = model.predict(data.x_test)`}</pre>
         }
         .hero p {
           max-width: 720px;
-          color: #334155;
+          color: var(--muted-strong);
           line-height: 1.8;
           margin: 0;
         }
@@ -550,12 +747,12 @@ result = model.predict(data.x_test)`}</pre>
           display: flex;
           align-items: center;
           gap: 9px;
-          color: #334155;
+          color: var(--muted-strong);
           font-weight: 700;
         }
         .metrics b {
           font-size: 1.4rem;
-          color: #172033;
+          color: var(--text);
         }
         .heroArt {
           min-height: 210px;
@@ -641,17 +838,17 @@ result = model.predict(data.x_test)`}</pre>
           flex-wrap: wrap;
         }
         .filterRow button {
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 7px;
-          background: #fff;
+          background: var(--surface);
           padding: 9px 12px;
           cursor: pointer;
-          color: #334155;
+          color: var(--muted-strong);
           font: inherit;
         }
         .filterRow .selected {
-          background: #4f63f6;
-          border-color: #4f63f6;
+          background: var(--accent);
+          border-color: var(--accent);
           color: #fff;
         }
         .sectionTitle h2,
@@ -660,7 +857,7 @@ result = model.predict(data.x_test)`}</pre>
           font-size: 1.18rem;
         }
         .sectionTitle a {
-          color: #4f63f6;
+          color: var(--accent);
           text-decoration: none;
           font-weight: 700;
         }
@@ -682,17 +879,17 @@ result = model.predict(data.x_test)`}</pre>
         }
         .algoCard {
           min-height: 252px;
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 8px;
-          background: #fff;
-          color: #172033;
+          background: var(--surface);
+          color: var(--text);
           padding: 10px;
           text-align: left;
           cursor: pointer;
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 8px 20px var(--shadow);
         }
         .algoCard.active {
-          box-shadow: 0 0 0 2px #4f63f6;
+          box-shadow: 0 0 0 2px var(--accent);
         }
         .algoCard b {
           width: 22px;
@@ -712,16 +909,16 @@ result = model.predict(data.x_test)`}</pre>
         .algoCard p {
           min-height: 62px;
           margin: 6px 0 10px;
-          color: #475569;
+          color: var(--muted);
           font-size: 0.82rem;
           line-height: 1.45;
         }
         .algoCard span {
           display: block;
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 6px;
-          background: #f8fafc;
-          color: #4f63f6;
+          background: var(--surface-soft);
+          color: var(--accent);
           text-align: center;
           padding: 8px 4px;
           font-weight: 700;
@@ -729,28 +926,43 @@ result = model.predict(data.x_test)`}</pre>
         }
         .labGrid {
           display: grid;
-          grid-template-columns: 1.15fr 1fr 0.9fr;
+          grid-template-columns: 1.05fr 1.25fr 0.9fr;
           gap: 18px;
           margin-bottom: 18px;
         }
         .panel {
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 9px;
-          background: #fff;
+          background: var(--surface);
           padding: 18px;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 8px 24px var(--shadow);
         }
         .panel p {
-          color: #475569;
+          color: var(--muted);
           line-height: 1.65;
+        }
+        .panelHeader {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+        }
+        .panelHeader span {
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          color: var(--accent);
+          padding: 7px 10px;
+          font-size: 0.78rem;
+          font-weight: 800;
+          white-space: nowrap;
         }
         .bigChart {
           height: 220px;
           display: grid;
           place-items: center;
-          border: 1px solid #e5e7eb;
+          border: 1px solid var(--line-soft);
           border-radius: 8px;
-          background: linear-gradient(#fff, #f8fafc);
+          background: linear-gradient(var(--surface), var(--surface-soft));
           margin: 16px 0;
         }
         .bigChart :global(.miniChart) {
@@ -767,41 +979,50 @@ result = model.predict(data.x_test)`}</pre>
         .controlBox div {
           display: grid;
           gap: 8px;
-          color: #64748b;
+          color: var(--muted);
           font-size: 0.88rem;
         }
         select {
           height: 38px;
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 7px;
           padding: 0 10px;
-          background: #fff;
+          background: var(--surface);
+          color: var(--text);
         }
         .controlBox button {
           grid-column: 1 / -1;
           border: 0;
           border-radius: 7px;
-          background: #4f63f6;
+          background: var(--accent);
           color: #fff;
           padding: 12px;
           cursor: pointer;
           font: inherit;
           font-weight: 800;
         }
+        .steps {
+          display: grid;
+          gap: 7px;
+          margin: 0 0 14px;
+          padding-left: 1.3rem;
+          color: var(--muted-strong);
+        }
         .codePanel pre {
+          max-height: 340px;
           overflow: auto;
           border-radius: 8px;
-          background: #172033;
-          color: #e5e7eb;
+          background: var(--code-bg);
+          color: var(--code-text);
           padding: 16px;
           line-height: 1.6;
           font-size: 0.82rem;
         }
         .codePanel a {
           display: block;
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 7px;
-          color: #4f63f6;
+          color: var(--accent);
           text-align: center;
           text-decoration: none;
           font-weight: 800;
@@ -813,9 +1034,10 @@ result = model.predict(data.x_test)`}</pre>
           margin: 14px 0;
         }
         .quizOptions button {
-          border: 1px solid #dbe3ef;
+          border: 1px solid var(--line);
           border-radius: 7px;
-          background: #fff;
+          background: var(--surface);
+          color: var(--text);
           padding: 11px;
           text-align: left;
           cursor: pointer;
@@ -824,12 +1046,44 @@ result = model.predict(data.x_test)`}</pre>
         .quizOptions .correct {
           border-color: #86efac;
           background: #dcfce7;
+          color: #14532d;
         }
         .ok {
           color: #16a34a;
         }
         .no {
           color: #dc2626;
+        }
+        .examplesOverview {
+          margin-bottom: 18px;
+        }
+        .exampleGrid {
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 14px;
+        }
+        .exampleGrid button {
+          min-height: 94px;
+          border: 1px solid var(--line);
+          border-left: 5px solid var(--accent);
+          border-radius: 8px;
+          background: var(--surface-soft);
+          color: var(--text);
+          padding: 12px;
+          text-align: left;
+          cursor: pointer;
+          font: inherit;
+        }
+        .exampleGrid strong,
+        .exampleGrid span {
+          display: block;
+        }
+        .exampleGrid span {
+          margin-top: 8px;
+          color: var(--muted);
+          font-size: 0.84rem;
+          line-height: 1.45;
         }
         .comparePanel {
           margin-bottom: 18px;
@@ -845,14 +1099,14 @@ result = model.predict(data.x_test)`}</pre>
         }
         th,
         td {
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid var(--line-soft);
           padding: 11px 10px;
           text-align: left;
           vertical-align: top;
         }
         th {
-          color: #64748b;
-          background: #f8fafc;
+          color: var(--muted);
+          background: var(--surface-soft);
           font-size: 0.86rem;
         }
         @media (max-width: 1120px) {
@@ -877,6 +1131,9 @@ result = model.predict(data.x_test)`}</pre>
           .heroArt {
             min-height: 260px;
           }
+          .exampleGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
         @media (max-width: 680px) {
           .workspace {
@@ -894,11 +1151,16 @@ result = model.predict(data.x_test)`}</pre>
           .hero h1 {
             font-size: 1.55rem;
           }
-          nav {
+          nav,
+          .exampleGrid {
             grid-template-columns: 1fr;
           }
-          .controlBox {
+          .controlBox,
+          .panelHeader {
             grid-template-columns: 1fr;
+          }
+          .panelHeader {
+            display: grid;
           }
         }
       `}</style>
