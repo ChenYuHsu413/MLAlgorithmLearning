@@ -91,10 +91,10 @@ pip install -r requirements.txt
 - Start Command:
 
 ```bash
-uvicorn main:app --host 0.0.0.0 --port $PORT
+gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
 ```
 
-Render 的 Web Service 必須綁定 `0.0.0.0`，並建議使用 Render 提供的 `$PORT`。
+Render 的 Web Service 必須綁定 `0.0.0.0`，並建議使用 Render 提供的 `$PORT`。後端使用 Gunicorn 啟動，並透過 Uvicorn worker 執行 FastAPI。
 
 ### 前端 Web Service
 
