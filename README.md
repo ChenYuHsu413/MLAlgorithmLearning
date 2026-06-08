@@ -2,6 +2,8 @@
 
 > Demo Link: https://ml-algorithm-learning.onrender.com/
 
+![Demo Screenshot](sources/demo_screenshot.png)
+
 ![Next.js](https://img.shields.io/badge/Next.js-15-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=222222)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
