@@ -76,14 +76,44 @@ npm run dev
 NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.example.com
 ```
 
-### 3. AI 助教 API 金鑰與模擬模式
+### 3. AI 助教實作機制與金鑰管理
 
-此專案整合了實時的 **AI 機器學習助教**，前後端透過 WebSocket 建立連線以達到逐字串流的回覆體驗。
-- **配置 API 金鑰**：請在 `backend` 目錄下建立 `.env` 檔案，並配置您的 OpenAI API 金鑰：
-  ```env
-  OPENAI_API_KEY=sk-xxxx...
-  ```
-- **模擬演示模式（Fallback Mock Mode）**：若未檢測到 `OPENAI_API_KEY` 環境變數，後端將自動降級為模擬測試模式。在此模式下，對話框仍可正常發送消息，您可以提問「過擬合」、「資料洩漏」或「建模流程」等主題，助教會以模擬串流的 typewriter 效果逐步打印詳細的思考引導，以便本機開發和排錯。
+本平台的 **AI 機器學習助教** 是一個基於 WebSocket 的即時問答系統，設計了高度穩健的「多核心自動故障轉移（Failover）」機制與「防禦性變數清洗」，以確保專案在展示與日常使用時永不斷線。
+
+#### 💡 AI 助教的實作與切換機制
+* **實時 WebSocket 通訊**：前後端透過 WebSocket 建立長連線，後端調用大模型 API 取得 `stream` 數據，並將 Token 即時以逐字串流（Typewriter Stream）回傳給前端，達到無延遲的回覆體驗。
+* **多核心 API 故障轉移鏈 (Failover)**：
+  當學生發送問題時，後端會以**鏈式順序**自動偵測並嘗試連接以下配置的金鑰：
+  $$\text{Gemini 3.5 Flash} \longrightarrow \text{Groq Llama 3} \longrightarrow \text{OpenRouter Free} \longrightarrow \text{OpenAI GPT-4o-mini}$$
+  如果鏈條上的某一個 API 連線失敗（如 429 額度耗盡、401 認證錯誤、404 模型停用），系統會自動向網頁端發送提示：`*[系統提示]* {API} 呼叫失敗，正在自動切換備用方案...`，並**立即調用下一個可用 API**，無縫繼續回答問題。
+* **終極保險 - 模擬演示模式 (Mock Mode)**：若所有的 API 皆嘗試失敗，或您未設定任何 API Key，系統會自動無縫降級至模擬助教模式。在此模式下，對話框仍可正常發送消息，當提問「過擬合」、「資料洩漏」或「建模流程」等主題時，助教會以模擬串流的打字機效果逐步輸出詳細的思考引導，以便本機展示和排錯。
+
+#### 🔑 金鑰環境變數配置 (`backend/.env` 或 Render 設定)
+請在 `backend` 目錄下建立 `.env` 檔案，配置您的金鑰項目（系統會自動清洗金鑰字串，過濾多餘引號或前後空格）：
+```env
+# 推薦的免費金鑰（請至 Google AI Studio 申請，預設 gemini-3.5-flash）
+GEMINI_API_KEY=您的_Gemini_API_Key
+
+# 備用免費金鑰 A（推論極速，請至 Groq Console 申請，預設 llama3-8b-8192）
+GROQ_API_KEY=您的_Groq_API_Key
+
+# 備用免費金鑰 B（請至 OpenRouter 申請）
+# 系統預設呼叫 `openrouter/free` 動態免費大模型路由
+# ⚠️ 注意：由於使用免費額度，此通道在尖峰時段可能會有延遲或速率限制
+OPENROUTER_API_KEY=您的_OpenRouter_API_Key
+
+# 備用付費金鑰（請至 OpenAI 申請，GPT-4o-mini）
+OPENAI_API_KEY=您的_OpenAI_API_Key
+```
+
+---
+
+## 📈 開發紀錄與工作報告
+
+在本次開發優化過程中，我們針對 API 故障、金鑰格式防錯、多核心備援等進行了深入的架構改造。詳細日誌與技術文件請參考：
+* 📄 **[開發指令與 Git 紀錄](docs/log.md)**
+* 📄 **[故障診斷與架構優化工作報告](docs/工作報告.md)**
+
 
 ## Render 部署設定
 
