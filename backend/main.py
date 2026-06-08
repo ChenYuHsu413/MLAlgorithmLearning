@@ -354,98 +354,114 @@ async def websocket_ai_chat(websocket: WebSocket):
             if not user_message:
                 continue
 
+            # List of providers we can attempt
+            providers = []
             if gemini_model:
+                providers.append(("Gemini", "gemini-3.5-flash"))
+            if groq_client:
+                providers.append(("Groq", "llama3-8b-8192"))
+            if openrouter_client:
+                providers.append(("OpenRouter", "openrouter/free"))
+            if openai_client:
+                providers.append(("OpenAI", "gpt-4o-mini"))
+
+            success = False
+            for provider_name, model_name in providers:
                 try:
-                    # Construct context prompt
-                    prompt_content = user_message
-                    if algo_context:
-                        prompt_content = f"[情境：學生目前正在學習 {algo_context}]\n\n問題：{user_message}"
+                    if provider_name == "Gemini":
+                        prompt_content = user_message
+                        if algo_context:
+                            prompt_content = f"[情境：學生目前正在學習 {algo_context}]\n\n問題：{user_message}"
 
-                    # Stream from Gemini API
-                    response = await gemini_model.generate_content_async(
-                        prompt_content,
-                        stream=True
-                    )
-                    async for chunk in response:
-                        try:
-                            if chunk.text:
-                                await websocket.send_text(chunk.text)
-                        except Exception:
-                            pass
+                        # Stream from Gemini API
+                        response = await gemini_model.generate_content_async(
+                            prompt_content,
+                            stream=True
+                        )
+                        async for chunk in response:
+                            try:
+                                if chunk.text:
+                                    await websocket.send_text(chunk.text)
+                            except Exception:
+                                pass
+                        success = True
+                        break
+
+                    elif provider_name == "Groq":
+                        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                        if algo_context:
+                            messages.append({
+                                "role": "system",
+                                "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                            })
+                        messages.append({"role": "user", "content": user_message})
+
+                        response = await groq_client.chat.completions.create(
+                            model=model_name,
+                            messages=messages,
+                            stream=True,
+                        )
+                        async for chunk in response:
+                            text_chunk = chunk.choices[0].delta.content
+                            if text_chunk:
+                                await websocket.send_text(text_chunk)
+                        success = True
+                        break
+
+                    elif provider_name == "OpenRouter":
+                        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                        if algo_context:
+                            messages.append({
+                                "role": "system",
+                                "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                            })
+                        messages.append({"role": "user", "content": user_message})
+
+                        response = await openrouter_client.chat.completions.create(
+                            model=model_name,
+                            messages=messages,
+                            stream=True,
+                        )
+                        async for chunk in response:
+                            text_chunk = chunk.choices[0].delta.content
+                            if text_chunk:
+                                await websocket.send_text(text_chunk)
+                        success = True
+                        break
+
+                    elif provider_name == "OpenAI":
+                        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                        if algo_context:
+                            messages.append({
+                                "role": "system",
+                                "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                            })
+                        messages.append({"role": "user", "content": user_message})
+
+                        response = await openai_client.chat.completions.create(
+                            model=model_name,
+                            messages=messages,
+                            stream=True,
+                        )
+                        async for chunk in response:
+                            text_chunk = chunk.choices[0].delta.content
+                            if text_chunk:
+                                await websocket.send_text(text_chunk)
+                        success = True
+                        break
+
                 except Exception as e:
-                    await websocket.send_text(f"\n[系統錯誤] 無法連結 Gemini API: {str(e)}\n")
+                    print(f"Warning: Provider {provider_name} failed: {e}")
+                    # Notify user of failure and fallback
+                    await websocket.send_text(f"\n*[系統提示]* {provider_name} API 呼叫失敗（{str(e)[:150]}...），正在自動切換備用方案...\n")
+                    continue
 
-            elif groq_client:
-                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-                if algo_context:
-                    messages.append({
-                        "role": "system",
-                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
-                    })
-                messages.append({"role": "user", "content": user_message})
-
-                try:
-                    # Stream answer from Groq
-                    response = await groq_client.chat.completions.create(
-                        model="llama3-8b-8192",
-                        messages=messages,
-                        stream=True,
-                    )
-                    async for chunk in response:
-                        text_chunk = chunk.choices[0].delta.content
-                        if text_chunk:
-                            await websocket.send_text(text_chunk)
-                except Exception as e:
-                    await websocket.send_text(f"\n[系統錯誤] 無法連結 Groq API: {str(e)}\n")
-
-            elif openrouter_client:
-                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-                if algo_context:
-                    messages.append({
-                        "role": "system",
-                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
-                    })
-                messages.append({"role": "user", "content": user_message})
-
-                try:
-                    # Stream answer from OpenRouter
-                    response = await openrouter_client.chat.completions.create(
-                        model="meta-llama/llama-3-8b-instruct:free",
-                        messages=messages,
-                        stream=True,
-                    )
-                    async for chunk in response:
-                        text_chunk = chunk.choices[0].delta.content
-                        if text_chunk:
-                            await websocket.send_text(text_chunk)
-                except Exception as e:
-                    await websocket.send_text(f"\n[系統錯誤] 無法連結 OpenRouter API: {str(e)}\n")
-
-            elif openai_client:
-                # Construct messages context for OpenAI
-                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-                if algo_context:
-                    messages.append({
-                        "role": "system",
-                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
-                    })
-                messages.append({"role": "user", "content": user_message})
-
-                try:
-                    # Stream answer from OpenAI
-                    response = await openai_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=messages,
-                        stream=True,
-                    )
-                    async for chunk in response:
-                        text_chunk = chunk.choices[0].delta.content
-                        if text_chunk:
-                            await websocket.send_text(text_chunk)
-                except Exception as e:
-                    await websocket.send_text(f"\n[系統錯誤] 無法連結 OpenAI API: {str(e)}\n")
-            else:
-                # Simulated response (Mock Stream Mode)
+            if not success:
+                # Fallback to Simulated response (Mock Stream Mode)
+                # Show fallback notification
+                if providers:
+                    await websocket.send_text("\n*[系統提示]* 所有配置的 AI 服務皆不可用，已自動切換至 AI 助教「模擬演示模式」：\n\n")
+                
                 mock_text = ""
                 user_msg_lower = user_message.lower()
 
