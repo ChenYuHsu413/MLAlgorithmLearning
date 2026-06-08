@@ -1,7 +1,23 @@
-from fastapi import FastAPI, HTTPException
+import os
+import json
+import asyncio
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
+from openai import AsyncOpenAI
+
+load_dotenv()
+
+# Setup OpenAI Client
+openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_client = None
+if openai_api_key:
+    openai_client = AsyncOpenAI(api_key=openai_api_key)
+else:
+    print("WARNING: OPENAI_API_KEY is not set. Chatbot will run in mock streaming fallback mode.")
+
 
 
 class Algorithm(BaseModel):
@@ -243,3 +259,116 @@ def get_algorithm(algorithm_id: int) -> Algorithm:
         if algo.id == algorithm_id:
             return algo
     raise HTTPException(status_code=404, detail="Algorithm not found")
+
+
+SYSTEM_PROMPT = (
+    "你是一位專業的「機器學習助教」。你的回答必須緊扣本平台的教學內容：4 種學習類型與 10 大核心演算法。"
+    "你需要引導學生思考完整的建模流程（1. 問題定義 -> 2. 資料蒐集 -> 3. 資料清理 -> 4. 特徵工程 -> 5. 訓練/驗證/測試切分 -> 6. 模型訓練 -> 7. 模型評估 -> 8. 解釋與部署維護）。"
+    "當學生遇到模型表現不好時，優先引導他們檢查資料品質、特徵定義、切分方式與評估指標（如回歸的 RMSE、分類的 F1-score 等）；"
+    "若表現異常好，則提醒注意資料洩漏（Data Leakage）問題。請用繁體中文回答，並以循序漸進、引導思考的方式進行，切勿直接提供大量完整的標準程式碼或結論。"
+)
+
+
+@app.websocket("/ws/ai-chat")
+async def websocket_ai_chat(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            # Receive text from client (JSON string)
+            data_str = await websocket.receive_text()
+            try:
+                data = json.loads(data_str)
+                user_message = data.get("message", "").strip()
+                algo_context = data.get("algoContext", "").strip()
+            except Exception:
+                user_message = data_str.strip()
+                algo_context = ""
+
+            if not user_message:
+                continue
+
+            # Construct messages context
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+            if algo_context:
+                messages.append({
+                    "role": "system",
+                    "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                })
+            messages.append({"role": "user", "content": user_message})
+
+            if openai_client:
+                try:
+                    # Stream answer from OpenAI
+                    response = await openai_client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=messages,
+                        stream=True,
+                    )
+                    async for chunk in response:
+                        text_chunk = chunk.choices[0].delta.content
+                        if text_chunk:
+                            await websocket.send_text(text_chunk)
+                except Exception as e:
+                    await websocket.send_text(f"\n[系統錯誤] 無法連結 OpenAI API: {str(e)}\n")
+            else:
+                # Simulated response (Mock Stream Mode)
+                mock_text = ""
+                user_msg_lower = user_message.lower()
+
+                if "過擬合" in user_msg_lower or "overfit" in user_msg_lower:
+                    mock_text = (
+                        "同學你好，你提到了一個非常關鍵的建模問題：**過擬合 (Overfitting)**。\n\n"
+                        "在我們的 8 大建模流程中，當你評估模型時，如果發現**訓練集誤差非常低，但驗證集/測試集誤差卻很高**，就是典型的過擬合。\n\n"
+                        "作為你的機器學習助教，我希望你能先思考一下：\n"
+                        "1. **特徵工程**上：是不是選取了太多無關或噪聲特徵？\n"
+                        "2. **資料清理/切分**上：訓練資料量是否足夠？是否進行了適當的交叉驗證？\n"
+                        "3. **模型參數**上：以當前演算法來說，如果是決策樹，是不是限制最大深度 (max_depth) 或進行剪枝會有幫助？如果是隨機森林，樹的數量是否足夠？\n\n"
+                        "你可以告訴我你目前正在使用哪一個演算法，以及訓練集與測試集的具體表現（例如 F1-score 或 RMSE）嗎？這樣我們可以一起討論如何調整。"
+                    )
+                elif "洩漏" in user_msg_lower or "leak" in user_msg_lower or "太好" in user_msg_lower:
+                    mock_text = (
+                        "同學你好！你的模型表現好得令人難以置信（例如準確率達到 100% 或極高的數值）？這很有可能是發生了**資料洩漏 (Data Leakage)**！\n\n"
+                        "資料洩漏通常發生在以下建模環節：\n"
+                        "1. **特徵工程階段**：在對整體數據做過濾、填補缺失值或標準化 (Scaler.fit) 時，不小心把測試集/驗證集的資訊也一起算進去，應該**只在訓練集上擬合 fit**。\n"
+                        "2. **資料切分階段**：時間序列數據如果使用隨機切分，就會用未來的數據去預測過去，發生時間洩漏。\n\n"
+                        "你可以檢查看看你的 `StandardScaler` 或 `MinMaxScaler` 是在什麼時候進行 `fit` 的嗎？是切分資料集之前，還是切分之後？"
+                    )
+                elif "建模" in user_msg_lower or "流程" in user_msg_lower:
+                    mock_text = (
+                        "沒問題！我們來重溫一下這套平台的 **8 大建模流程**：\n"
+                        "1. **問題定義**：確定你的目標變數是連續的（迴歸問題）還是離散的（分類問題）。\n"
+                        "2. **資料蒐集**：獲取原始特徵。\n"
+                        "3. **資料清理**：處理缺失值、異常值。\n"
+                        "4. **特徵工程**：標準化（對 KNN, SVM 很重要）、編碼、降維（PCA）。\n"
+                        "5. **資料切分**：切分 Train / Validation / Test，防範資料洩漏。\n"
+                        "6. **模型訓練**：擬合演算法。\n"
+                        "7. **模型評估**：選擇正確指標，如迴歸用 RMSE/MAE，分類用 F1-score/Accuracy/ROC-AUC。\n"
+                        "8. **部署與維護**：模型解釋、監控與定期重訓。\n\n"
+                        "這 8 個步驟是環環相扣的。你目前在做哪一個演算法的實作呢？遇到了什麼阻礙嗎？"
+                    )
+                else:
+                    algo_info = f"在【{algo_context}】" if algo_context else "在機器學習"
+                    mock_text = (
+                        f"你好！我是你的 AI 機器學習助教（目前處於模擬演示模式，尚未配置 `OPENAI_API_KEY`）。\n\n"
+                        f"你所詢問的問題是：『{user_message}』。\n\n"
+                        f"當我們{algo_info}進行建模時，助教建議你可以遵循這幾個思考方向：\n"
+                        f"1. **資料品質與特徵定義**：輸入特徵是否與目標變數高度相關？是否需要特徵縮放？\n"
+                        f"2. **評估指標選擇**：如果我們在解的是分類問題，優先觀察 **F1-score** 或 **ROC-AUC**；若是迴歸，則觀察 **RMSE** 或 **R²**。\n"
+                        f"3. **異常表现分析**：若表現極佳，請防範**資料洩漏**；若表現差，則嘗試調整超參數或重新檢查特徵工程。\n\n"
+                        f"你可以試著對我提問關於『過擬合』、『資料洩漏』或『建模流程』等關鍵字，我會向你演示相關的引導邏輯喔！"
+                    )
+
+                # Slow typewriter simulation
+                chunk_len = 5
+                for idx in range(0, len(mock_text), chunk_len):
+                    await websocket.send_text(mock_text[idx:idx + chunk_len])
+                    await asyncio.sleep(0.015)
+
+            # Signal end of stream
+            await websocket.send_text("[DONE]")
+
+    except WebSocketDisconnect:
+        print("AI Assistant WebSocket connection closed.")
+    except Exception as e:
+        print(f"Error in WebSocket session: {e}")
+

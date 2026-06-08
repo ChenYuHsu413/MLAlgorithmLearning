@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { reportGuide, reportInsights } from '../lib/algorithmReport';
+import AIChatbot from '../components/AIChatbot';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -2040,6 +2041,7 @@ export default function Home() {
           }
         }
       `}</style>
+      <AIChatbot activeAlgorithmName={active?.name} />
     </main>
   );
 }
