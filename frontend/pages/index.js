@@ -819,6 +819,7 @@ export default function Home() {
   const progress = algorithms.length ? Math.round((done / algorithms.length) * 100) : 0;
 
   function selectAnswer(algoId, index) {
+    if (answers[algoId] === true) return;
     const correctIndex = meta[algoId].quiz[2];
     setAnswers((current) => ({ ...current, [algoId]: index === correctIndex }));
   }
