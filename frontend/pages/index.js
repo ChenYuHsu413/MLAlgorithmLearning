@@ -193,38 +193,198 @@ function enrich(algo) {
   return { ...algo, ...meta[algo.id] };
 }
 
-function MiniChart({ type, color }) {
-  const dots = ['12,74', '24,62', '36,58', '48,43', '62,38', '76,24'];
+function MiniChart({ type, color, stateIndex = 0 }) {
+  // 5 dynamic states for 'line' chart type
+  const lineStates = [
+    {
+      d: "M14 64 C32 54 42 46 55 36 S78 23 88 12",
+      dots: ['12,74', '24,62', '36,58', '48,43', '62,38', '76,24']
+    },
+    {
+      d: "M14 58 C30 50 40 40 52 46 S75 30 88 22",
+      dots: ['15,62', '28,52', '40,65', '52,38', '68,48', '80,18']
+    },
+    {
+      d: "M14 48 C35 38 45 55 60 40 S78 15 88 20",
+      dots: ['18,48', '30,30', '42,50', '58,45', '70,22', '82,32']
+    },
+    {
+      d: "M14 68 L88 20",
+      dots: ['16,65', '26,55', '38,50', '50,35', '65,30', '80,25']
+    },
+    {
+      d: "M14 60 C30 58 45 28 60 25 S80 35 88 30",
+      dots: ['14,58', '26,60', '35,42', '48,32', '66,28', '78,40']
+    }
+  ];
+
+  // 5 dynamic states for 'tree' chart type
+  const treeStates = [
+    {
+      paths: ["M50 12 L28 34 L18 58 M28 34 L40 58 M50 12 L72 34 L62 58 M72 34 L84 58"],
+      nodes: [
+        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
+        { cx: 28, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 18, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 40, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 72, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 62, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 84, cy: 58, opacity: 1, type: 'circle' }
+      ]
+    },
+    {
+      paths: ["M50 12 L28 34 L18 58 M28 34 L40 58"],
+      nodes: [
+        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
+        { cx: 28, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 18, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 40, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 72, cy: 34, opacity: 0.25, type: 'rect' },
+        { cx: 62, cy: 58, opacity: 0.25, type: 'circle' },
+        { cx: 84, cy: 58, opacity: 0.25, type: 'circle' }
+      ]
+    },
+    {
+      paths: ["M50 12 L72 34 L62 58 M72 34 L84 58"],
+      nodes: [
+        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
+        { cx: 28, cy: 34, opacity: 0.25, type: 'rect' },
+        { cx: 18, cy: 58, opacity: 0.25, type: 'circle' },
+        { cx: 40, cy: 58, opacity: 0.25, type: 'circle' },
+        { cx: 72, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 62, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 84, cy: 58, opacity: 1, type: 'circle' }
+      ]
+    },
+    {
+      paths: ["M50 12 L28 34 M50 12 L72 34"],
+      nodes: [
+        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
+        { cx: 28, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 72, cy: 34, opacity: 1, type: 'rect' }
+      ]
+    },
+    {
+      paths: ["M50 12 L28 34 L40 58 M50 12 L72 34 L62 58"],
+      nodes: [
+        { cx: 50, cy: 12, opacity: 1, type: 'rect' },
+        { cx: 28, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 40, cy: 58, opacity: 1, type: 'circle' },
+        { cx: 72, cy: 34, opacity: 1, type: 'rect' },
+        { cx: 62, cy: 58, opacity: 1, type: 'circle' }
+      ]
+    }
+  ];
+
+  // 5 dynamic states for 'cluster' chart type (K-Means)
+  const clusterStates = [
+    {
+      blues: [{ cx: 16, cy: 28 }, { cx: 25, cy: 37 }, { cx: 32, cy: 46 }, { cx: 66, cy: 24 }, { cx: 75, cy: 36 }, { cx: 82, cy: 48 }],
+      warms: [{ cx: 42, cy: 56 }, { cx: 50, cy: 58 }, { cx: 57, cy: 60 }]
+    },
+    {
+      blues: [{ cx: 18, cy: 26 }, { cx: 22, cy: 34 }, { cx: 28, cy: 38 }, { cx: 70, cy: 24 }, { cx: 74, cy: 32 }, { cx: 80, cy: 28 }],
+      warms: [{ cx: 44, cy: 52 }, { cx: 48, cy: 55 }, { cx: 52, cy: 58 }]
+    },
+    {
+      blues: [{ cx: 20, cy: 25 }, { cx: 22, cy: 29 }, { cx: 25, cy: 31 }, { cx: 72, cy: 22 }, { cx: 75, cy: 26 }, { cx: 78, cy: 24 }],
+      warms: [{ cx: 46, cy: 48 }, { cx: 48, cy: 51 }, { cx: 50, cy: 53 }]
+    },
+    {
+      blues: [{ cx: 21, cy: 24 }, { cx: 22, cy: 26 }, { cx: 23, cy: 25 }, { cx: 74, cy: 23 }, { cx: 75, cy: 25 }, { cx: 76, cy: 24 }],
+      warms: [{ cx: 47, cy: 49 }, { cx: 48, cy: 50 }, { cx: 49, cy: 49 }]
+    },
+    {
+      blues: [{ cx: 25, cy: 45 }, { cx: 28, cy: 48 }, { cx: 31, cy: 46 }, { cx: 65, cy: 45 }, { cx: 68, cy: 49 }, { cx: 71, cy: 47 }],
+      warms: [{ cx: 48, cy: 25 }, { cx: 50, cy: 27 }, { cx: 52, cy: 26 }]
+    }
+  ];
+
+  // 5 dynamic states for 'network' chart type (Neural Network weights)
+  const networkStates = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 0.2, 0.8, 0.2, 1, 0.2, 0.8, 0.1],
+    [0.2, 1, 0.2, 0.8, 0.2, 1, 0.1, 0.9],
+    [0.9, 0.9, 0.1, 0.1, 0.9, 0.1, 0.9, 0.1],
+    [1, 0.1, 0.1, 0.9, 1, 0.1, 0.1, 0.9]
+  ];
+
+  const currentLine = lineStates[stateIndex % 5];
+  const currentTree = treeStates[stateIndex % 5];
+  const currentCluster = clusterStates[stateIndex % 5];
+  const currentNetworkOpacities = networkStates[stateIndex % 5];
+
+  const networkConnections = [
+    "M18 18 L50 30", // L1 -> H1
+    "M50 30 L82 18", // H1 -> R1
+    "M18 40 L50 30", // L2 -> H1
+    "M50 30 L82 40", // H1 -> R2
+    "M18 62 L50 52", // L3 -> H2
+    "M50 52 L82 62", // H2 -> R3
+    "M50 30 L82 62", // H1 -> R3
+    "M50 52 L82 18"  // H2 -> R1
+  ];
+
   return (
     <svg className="miniChart" viewBox="0 0 100 80" aria-hidden="true">
       {type === 'tree' ? (
         <>
-          <path d="M50 12 L28 34 L18 58 M28 34 L40 58 M50 12 L72 34 L62 58 M72 34 L84 58" />
-          {[50, 28, 18, 40, 72, 62, 84].map((x, index) => (
-            <circle key={index} cx={x} cy={index === 0 ? 12 : index % 2 ? 34 : 58} r="4" />
+          {currentTree.paths.map((p, i) => (
+            <path key={i} d={p} />
           ))}
+          {currentTree.nodes.map((node, index) => {
+            if (node.type === 'rect') {
+              return (
+                <rect
+                  key={index}
+                  x={node.cx - 4}
+                  y={node.cy - 4}
+                  width="8"
+                  height="8"
+                  rx="1.5"
+                  ry="1.5"
+                  style={{ opacity: node.opacity }}
+                />
+              );
+            }
+            return (
+              <circle
+                key={index}
+                cx={node.cx}
+                cy={node.cy}
+                r="4"
+                style={{ opacity: node.opacity }}
+              />
+            );
+          })}
         </>
       ) : type === 'cluster' ? (
         <>
-          {[16, 25, 32, 66, 75, 82].map((x, index) => (
-            <circle key={index} cx={x} cy={index < 3 ? 28 + index * 9 : 24 + (index - 3) * 12} r="5" />
+          {currentCluster.blues.map((dot, index) => (
+            <circle key={`blue-${index}`} cx={dot.cx} cy={dot.cy} r="4.5" />
           ))}
-          {[42, 50, 57].map((x, index) => (
-            <circle key={`b${index}`} cx={x} cy={56 + index * 2} r="5" className="warm" />
+          {currentCluster.warms.map((dot, index) => (
+            <circle key={`warm-${index}`} cx={dot.cx} cy={dot.cy} r="4.5" className="warm" />
           ))}
         </>
       ) : type === 'network' ? (
         <>
-          <path d="M18 18 L50 30 L82 18 M18 40 L50 30 L82 40 M18 62 L50 52 L82 62 M50 30 L82 62 M50 52 L82 18" />
+          {networkConnections.map((d, i) => (
+            <path
+              key={i}
+              d={d}
+              style={{ opacity: currentNetworkOpacities[i], strokeWidth: currentNetworkOpacities[i] > 0.5 ? 2.5 : 1.2 }}
+            />
+          ))}
           {[18, 18, 18, 50, 50, 82, 82, 82].map((x, index) => (
-            <circle key={index} cx={x} cy={[18, 40, 62, 30, 52, 18, 40, 62][index]} r="5" />
+            <circle key={index} cx={x} cy={[18, 40, 62, 30, 52, 18, 40, 62][index]} r="4.5" />
           ))}
         </>
       ) : (
         <>
           <path className="axis" d="M12 68 H88 M12 68 V10" />
-          <path className="line" d="M14 64 C32 54 42 46 55 36 S78 23 88 12" />
-          {dots.map((dot) => {
+          <path className="line" d={currentLine.d} />
+          {currentLine.dots.map((dot) => {
             const [cx, cy] = dot.split(',');
             return <circle key={dot} cx={cx} cy={cy} r="4" />;
           })}
@@ -238,7 +398,7 @@ function MiniChart({ type, color }) {
         path {
           fill: none;
           stroke: ${color};
-          stroke-width: 3;
+          stroke-width: 2.2;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
@@ -249,12 +409,15 @@ function MiniChart({ type, color }) {
         .line {
           stroke: ${color};
         }
-        circle {
+        circle, rect {
           fill: ${color};
+          stroke: ${color};
+          stroke-width: 0.5;
           opacity: 0.9;
         }
         .warm {
           fill: #fb923c;
+          stroke: #ea580c;
         }
       `}</style>
     </svg>
@@ -686,7 +849,7 @@ export default function Home() {
               <h2>互動式可視化</h2>
               <p>目前選擇：{active.shortName}</p>
               <div className={`bigChart ${simulationRun ? 'isRunning' : ''}`} key={`${active.id}-${simulationRun}`}>
-                <MiniChart type={chartType(active.id)} color={active.color} />
+                <MiniChart type={chartType(active.id)} color={active.color} stateIndex={simulationRun} />
               </div>
               <div className="controlBox">
                 <label>
