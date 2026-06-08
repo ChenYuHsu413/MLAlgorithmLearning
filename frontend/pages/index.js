@@ -501,27 +501,28 @@ function MiniChart({ type, color, stateIndex = 0, algoId }) {
           width: 100%;
           height: 82px;
         }
-        path {
+        .miniChart :global(path) {
           fill: none;
           stroke: ${color};
           stroke-width: 2.2;
           stroke-linecap: round;
           stroke-linejoin: round;
         }
-        .axis {
+        .miniChart :global(.axis) {
           stroke: var(--chart-axis);
           stroke-width: 2;
         }
-        .line {
+        .miniChart :global(.line) {
           stroke: ${color};
         }
-        circle, rect {
+        .miniChart :global(circle),
+        .miniChart :global(rect) {
           fill: ${color};
           stroke: ${color};
           stroke-width: 0.5;
           opacity: 0.9;
         }
-        .warm {
+        .miniChart :global(.warm) {
           fill: #fb923c;
           stroke: #ea580c;
         }
