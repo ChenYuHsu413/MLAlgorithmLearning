@@ -1,5 +1,33 @@
 # 開發指令執行紀錄 (Git & Shell Logs)
 
+## 📌 專案 Git 提交歷史紀錄 (Commit History)
+以下是本專案截至目前的完整 Git 提交歷史，作為開發軌跡參考：
+```text
+4d8fcb2 docs: update log.md and 工作報告.md to include quiz answer locking details
+e0d7827 fix: ignore quiz answer selections once correct answer is chosen
+bf57fb0 docs: add log.md, 工作報告.md and update README.md with AI assistant mechanism and failover architecture
+4043587 feat: use openrouter/free model slug and implement auto-fallback failover sequence to simulated mode
+b972ba3 fix: sanitize API key input strings and print masked logs for troubleshooting
+76852f8 feat: add support for Groq and OpenRouter LLMs as free fallbacks
+4605f78 feat: support Google Gemini 3.5 API and update requirements
+b46eb16 fix: add websockets dependency for Render ASGI websocket support
+a03f533 docs: document AI chatbot integration and environmental setups in README
+21efca1 feat: implement AI Machine Learning assistant chatbot with WebSocket streaming
+7acb90e fix: resolve CSS scoping issue in MiniChart component using :global selectors
+079d8db feat: add custom algorithm-specific visual simulation states for all 10 ML models
+05c7ea7 feat: add 5 dynamic visual simulation states to interactive charts
+4168c3c style: update homepage hero illustration and fix styling scope
+0369e60 Improve homepage interactions and default dark theme
+1eba989 Add Render demo link
+0ed367d Use Gunicorn for Render backend
+f33bb20 Enrich learning content from study report
+729cd49 Add scene toggle and implementation examples
+6d63528 Add source study report
+b97be9c Initial ML algorithm learning app
+```
+
+---
+
 本文件紀錄了在此專案的開發與優化過程中，所執行的所有 Git 與系統指令。
 
 ## 1. 系統診斷與除錯指令
