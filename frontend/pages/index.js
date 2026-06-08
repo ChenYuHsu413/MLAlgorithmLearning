@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { reportGuide, reportInsights } from '../lib/algorithmReport';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -308,6 +309,7 @@ export default function Home() {
 
   const active = algorithms.find((algo) => algo.id === activeId) || filtered[0] || algorithms[0];
   const activeExample = active ? implementationExamples[active.id] : null;
+  const activeInsight = active ? reportInsights[active.id] : null;
   const done = Object.values(answers).filter(Boolean).length;
   const progress = algorithms.length ? Math.round((done / algorithms.length) * 100) : 0;
 
@@ -466,6 +468,63 @@ export default function Home() {
             </article>
           </section>
         )}
+
+        {activeInsight && (
+          <section className="panel reportPanel">
+            <div className="panelHeader">
+              <div>
+                <h2>PDF 研讀報告重點</h2>
+                <p>{active.shortName} 的輸出型態：{activeInsight.output}</p>
+              </div>
+              <span>Study Report</span>
+            </div>
+            <p className="coreNote">{activeInsight.core}</p>
+            <div className="reportGrid">
+              <div>
+                <h3>建模流程</h3>
+                <ol>
+                  {activeInsight.workflow.map((item) => <li key={item}>{item}</li>)}
+                </ol>
+              </div>
+              <div>
+                <h3>評估指標</h3>
+                <div className="chips">
+                  {activeInsight.metrics.map((item) => <span key={item}>{item}</span>)}
+                </div>
+              </div>
+              <div>
+                <h3>常見錯誤</h3>
+                <ul>
+                  {activeInsight.pitfalls.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </div>
+              <div>
+                <h3>實作練習</h3>
+                <p>{activeInsight.practice}</p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="panel guidePanel">
+          <h2>完整建模流程與評估地圖</h2>
+          <div className="flowRail">
+            {reportGuide.modelingFlow.map((step, index) => (
+              <span key={step}><b>{index + 1}</b>{step}</span>
+            ))}
+          </div>
+          <div className="metricGrid">
+            {reportGuide.evaluationMap.map((item) => (
+              <div key={item.task}>
+                <strong>{item.task}</strong>
+                <p>{item.metrics}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="selectionRules">
+            {reportGuide.selectionRules.map((rule) => <li key={rule}>{rule}</li>)}
+          </ul>
+        </section>
 
         <section className="panel examplesOverview">
           <h2>所有演算法實作索引</h2>
@@ -1057,6 +1116,92 @@ export default function Home() {
         .examplesOverview {
           margin-bottom: 18px;
         }
+        .reportPanel,
+        .guidePanel {
+          margin-bottom: 18px;
+        }
+        .coreNote {
+          margin: 14px 0 16px;
+          font-size: 1rem;
+        }
+        .reportGrid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+        }
+        .reportGrid h3 {
+          margin: 0 0 10px;
+          font-size: 0.98rem;
+        }
+        .reportGrid ol,
+        .reportGrid ul,
+        .selectionRules {
+          margin: 0;
+          padding-left: 1.2rem;
+          color: var(--muted);
+          line-height: 1.6;
+        }
+        .chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .chips span {
+          border: 1px solid var(--line);
+          border-radius: 999px;
+          background: var(--surface-soft);
+          color: var(--muted-strong);
+          padding: 7px 10px;
+          font-size: 0.82rem;
+          font-weight: 700;
+        }
+        .flowRail {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin: 16px 0;
+        }
+        .flowRail span {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--surface-soft);
+          color: var(--muted-strong);
+          padding: 10px;
+          font-size: 0.88rem;
+          font-weight: 700;
+        }
+        .flowRail b {
+          width: 24px;
+          height: 24px;
+          display: grid;
+          place-items: center;
+          border-radius: 999px;
+          background: var(--accent);
+          color: #fff;
+          font-size: 0.78rem;
+        }
+        .metricGrid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 14px;
+        }
+        .metricGrid div {
+          border-left: 4px solid var(--accent);
+          border-radius: 8px;
+          background: var(--surface-soft);
+          padding: 12px;
+        }
+        .metricGrid strong {
+          display: block;
+          margin-bottom: 6px;
+        }
+        .metricGrid p {
+          margin: 0;
+        }
         .exampleGrid {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1134,6 +1279,11 @@ export default function Home() {
           .exampleGrid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+          .reportGrid,
+          .flowRail,
+          .metricGrid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
         }
         @media (max-width: 680px) {
           .workspace {
@@ -1152,7 +1302,10 @@ export default function Home() {
             font-size: 1.55rem;
           }
           nav,
-          .exampleGrid {
+          .exampleGrid,
+          .reportGrid,
+          .flowRail,
+          .metricGrid {
             grid-template-columns: 1fr;
           }
           .controlBox,
