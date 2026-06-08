@@ -87,3 +87,18 @@ git commit -m "feat: use openrouter/free model slug and implement auto-fallback 
 # 推送至遠端
 git push
 ```
+
+---
+
+## 6. 第五階段：修正測驗作答狀態鎖定問題
+修正當使用者答對之後，再次點擊其他錯誤選項會改變作答狀態的 UI 缺陷：
+```bash
+# 暫存變更
+git add frontend/pages/index.js
+
+# 提交測驗狀態鎖定修復
+git commit -m "fix: ignore quiz answer selections once correct answer is chosen"
+
+# 推送至遠端
+git push
+```
