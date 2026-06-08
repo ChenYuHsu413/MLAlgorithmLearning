@@ -19,8 +19,20 @@ SYSTEM_PROMPT = (
     "若表現異常好，則提醒注意資料洩漏（Data Leakage）問題。請用繁體中文回答，並以循序漸進、引導思考的方式進行，切勿直接提供大量完整的標準程式碼或結論。"
 )
 
+def clean_api_key(key: str) -> str:
+    if not key:
+        return ""
+    return key.strip().strip("'").strip('"')
+
+def mask_key(key: str) -> str:
+    if not key:
+        return "Not Set"
+    if len(key) <= 12:
+        return f"Set (Invalid length: {len(key)} chars)"
+    return f"{key[:8]}...{key[-4:]} (length: {len(key)})"
+
 # Setup Gemini Client (Primary Free-Tier option)
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_api_key = clean_api_key(os.getenv("GEMINI_API_KEY"))
 gemini_model = None
 if gemini_api_key:
     try:
@@ -29,12 +41,12 @@ if gemini_api_key:
             model_name='gemini-3.5-flash',
             system_instruction=SYSTEM_PROMPT
         )
-        print("INFO: Gemini API configured successfully (Primary LLM).")
+        print(f"INFO: Gemini API configured successfully. Key: {mask_key(gemini_api_key)}")
     except Exception as e:
         print(f"Error configuring Gemini: {e}")
 
 # Setup Groq Client (Alternative Free-Tier option)
-groq_api_key = os.getenv("GROQ_API_KEY")
+groq_api_key = clean_api_key(os.getenv("GROQ_API_KEY"))
 groq_client = None
 if groq_api_key:
     try:
@@ -42,12 +54,12 @@ if groq_api_key:
             api_key=groq_api_key,
             base_url="https://api.groq.com/openai/v1"
         )
-        print("INFO: Groq API configured successfully (Llama 3).")
+        print(f"INFO: Groq API configured successfully (Llama 3). Key: {mask_key(groq_api_key)}")
     except Exception as e:
         print(f"Error configuring Groq: {e}")
 
 # Setup OpenRouter Client (Alternative Free-Tier option)
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+openrouter_api_key = clean_api_key(os.getenv("OPENROUTER_API_KEY"))
 openrouter_client = None
 if openrouter_api_key:
     try:
@@ -55,17 +67,17 @@ if openrouter_api_key:
             api_key=openrouter_api_key,
             base_url="https://openrouter.ai/api/v1"
         )
-        print("INFO: OpenRouter API configured successfully.")
+        print(f"INFO: OpenRouter API configured successfully. Key: {mask_key(openrouter_api_key)}")
     except Exception as e:
         print(f"Error configuring OpenRouter: {e}")
 
 # Setup OpenAI Client (Alternative option)
-openai_api_key = os.getenv("OPENAI_API_KEY")
+openai_api_key = clean_api_key(os.getenv("OPENAI_API_KEY"))
 openai_client = None
 if openai_api_key:
     try:
         openai_client = AsyncOpenAI(api_key=openai_api_key)
-        print("INFO: OpenAI API configured successfully.")
+        print(f"INFO: OpenAI API configured successfully. Key: {mask_key(openai_api_key)}")
     except Exception as e:
         print(f"Error configuring OpenAI: {e}")
 
