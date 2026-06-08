@@ -33,6 +33,32 @@ if gemini_api_key:
     except Exception as e:
         print(f"Error configuring Gemini: {e}")
 
+# Setup Groq Client (Alternative Free-Tier option)
+groq_api_key = os.getenv("GROQ_API_KEY")
+groq_client = None
+if groq_api_key:
+    try:
+        groq_client = AsyncOpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
+        print("INFO: Groq API configured successfully (Llama 3).")
+    except Exception as e:
+        print(f"Error configuring Groq: {e}")
+
+# Setup OpenRouter Client (Alternative Free-Tier option)
+openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+openrouter_client = None
+if openrouter_api_key:
+    try:
+        openrouter_client = AsyncOpenAI(
+            api_key=openrouter_api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
+        print("INFO: OpenRouter API configured successfully.")
+    except Exception as e:
+        print(f"Error configuring OpenRouter: {e}")
+
 # Setup OpenAI Client (Alternative option)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_client = None
@@ -43,8 +69,8 @@ if openai_api_key:
     except Exception as e:
         print(f"Error configuring OpenAI: {e}")
 
-if not gemini_model and not openai_client:
-    print("WARNING: Neither GEMINI_API_KEY nor OPENAI_API_KEY is configured. Chatbot will run in mock streaming fallback mode.")
+if not gemini_model and not groq_client and not openrouter_client and not openai_client:
+    print("WARNING: No AI API keys (Gemini, Groq, OpenRouter, OpenAI) configured. Chatbot will run in mock streaming fallback mode.")
 
 
 
@@ -337,6 +363,52 @@ async def websocket_ai_chat(websocket: WebSocket):
                 except Exception as e:
                     await websocket.send_text(f"\n[系統錯誤] 無法連結 Gemini API: {str(e)}\n")
 
+            elif groq_client:
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                if algo_context:
+                    messages.append({
+                        "role": "system",
+                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                    })
+                messages.append({"role": "user", "content": user_message})
+
+                try:
+                    # Stream answer from Groq
+                    response = await groq_client.chat.completions.create(
+                        model="llama3-8b-8192",
+                        messages=messages,
+                        stream=True,
+                    )
+                    async for chunk in response:
+                        text_chunk = chunk.choices[0].delta.content
+                        if text_chunk:
+                            await websocket.send_text(text_chunk)
+                except Exception as e:
+                    await websocket.send_text(f"\n[系統錯誤] 無法連結 Groq API: {str(e)}\n")
+
+            elif openrouter_client:
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                if algo_context:
+                    messages.append({
+                        "role": "system",
+                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                    })
+                messages.append({"role": "user", "content": user_message})
+
+                try:
+                    # Stream answer from OpenRouter
+                    response = await openrouter_client.chat.completions.create(
+                        model="meta-llama/llama-3-8b-instruct:free",
+                        messages=messages,
+                        stream=True,
+                    )
+                    async for chunk in response:
+                        text_chunk = chunk.choices[0].delta.content
+                        if text_chunk:
+                            await websocket.send_text(text_chunk)
+                except Exception as e:
+                    await websocket.send_text(f"\n[系統錯誤] 無法連結 OpenRouter API: {str(e)}\n")
+
             elif openai_client:
                 # Construct messages context for OpenAI
                 messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -399,7 +471,7 @@ async def websocket_ai_chat(websocket: WebSocket):
                 else:
                     algo_info = f"在【{algo_context}】" if algo_context else "在機器學習"
                     mock_text = (
-                        f"你好！我是你的 AI 機器學習助教（目前處於模擬演示模式，尚未配置 `GEMINI_API_KEY` 或 `OPENAI_API_KEY`）。\n\n"
+                        f"你好！我是你的 AI 機器學習助教（目前處於模擬演示模式，尚未配置 `GEMINI_API_KEY`、`GROQ_API_KEY`、`OPENROUTER_API_KEY` 或 `OPENAI_API_KEY`）。\n\n"
                         f"你所詢問的問題是：『{user_message}』。\n\n"
                         f"當我們{algo_info}進行建模時，助教建議你可以遵循這幾個思考方向：\n"
                         f"1. **資料品質與特徵定義**：輸入特徵是否與目標變數高度相關？是否需要特徵縮放？\n"
