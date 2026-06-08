@@ -7,16 +7,45 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from openai import AsyncOpenAI
+import google.generativeai as genai
 
 load_dotenv()
 
-# Setup OpenAI Client
+# System Prompt shared by Gemini and OpenAI
+SYSTEM_PROMPT = (
+    "你是一位專業的「機器學習助教」。你的回答必須緊扣本平台的教學內容：4 種學習類型與 10 大核心演算法。"
+    "你需要引導學生思考完整的建模流程（1. 問題定義 -> 2. 資料蒐集 -> 3. 資料清理 -> 4. 特徵工程 -> 5. 訓練/驗證/測試切分 -> 6. 模型訓練 -> 7. 模型評估 -> 8. 解釋與部署維護）。"
+    "當學生遇到模型表現不好時，優先引導他們檢查資料品質、特徵定義、切分方式與評估指標（如回歸的 RMSE、分類 of F1-score 等）；"
+    "若表現異常好，則提醒注意資料洩漏（Data Leakage）問題。請用繁體中文回答，並以循序漸進、引導思考的方式進行，切勿直接提供大量完整的標準程式碼或結論。"
+)
+
+# Setup Gemini Client (Primary Free-Tier option)
+gemini_api_key = os.getenv("GEMINI_API_KEY")
+gemini_model = None
+if gemini_api_key:
+    try:
+        genai.configure(api_key=gemini_api_key)
+        gemini_model = genai.GenerativeModel(
+            model_name='gemini-3.5-flash',
+            system_instruction=SYSTEM_PROMPT
+        )
+        print("INFO: Gemini API configured successfully (Primary LLM).")
+    except Exception as e:
+        print(f"Error configuring Gemini: {e}")
+
+# Setup OpenAI Client (Alternative option)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_client = None
 if openai_api_key:
-    openai_client = AsyncOpenAI(api_key=openai_api_key)
-else:
-    print("WARNING: OPENAI_API_KEY is not set. Chatbot will run in mock streaming fallback mode.")
+    try:
+        openai_client = AsyncOpenAI(api_key=openai_api_key)
+        print("INFO: OpenAI API configured successfully.")
+    except Exception as e:
+        print(f"Error configuring OpenAI: {e}")
+
+if not gemini_model and not openai_client:
+    print("WARNING: Neither GEMINI_API_KEY nor OPENAI_API_KEY is configured. Chatbot will run in mock streaming fallback mode.")
+
 
 
 
@@ -261,7 +290,7 @@ def get_algorithm(algorithm_id: int) -> Algorithm:
     raise HTTPException(status_code=404, detail="Algorithm not found")
 
 
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT_MOCK = (
     "你是一位專業的「機器學習助教」。你的回答必須緊扣本平台的教學內容：4 種學習類型與 10 大核心演算法。"
     "你需要引導學生思考完整的建模流程（1. 問題定義 -> 2. 資料蒐集 -> 3. 資料清理 -> 4. 特徵工程 -> 5. 訓練/驗證/測試切分 -> 6. 模型訓練 -> 7. 模型評估 -> 8. 解釋與部署維護）。"
     "當學生遇到模型表現不好時，優先引導他們檢查資料品質、特徵定義、切分方式與評估指標（如回歸的 RMSE、分類的 F1-score 等）；"
@@ -287,16 +316,37 @@ async def websocket_ai_chat(websocket: WebSocket):
             if not user_message:
                 continue
 
-            # Construct messages context
-            messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-            if algo_context:
-                messages.append({
-                    "role": "system",
-                    "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
-                })
-            messages.append({"role": "user", "content": user_message})
+            if gemini_model:
+                try:
+                    # Construct context prompt
+                    prompt_content = user_message
+                    if algo_context:
+                        prompt_content = f"[情境：學生目前正在學習 {algo_context}]\n\n問題：{user_message}"
 
-            if openai_client:
+                    # Stream from Gemini API
+                    response = await gemini_model.generate_content_async(
+                        prompt_content,
+                        stream=True
+                    )
+                    async for chunk in response:
+                        try:
+                            if chunk.text:
+                                await websocket.send_text(chunk.text)
+                        except Exception:
+                            pass
+                except Exception as e:
+                    await websocket.send_text(f"\n[系統錯誤] 無法連結 Gemini API: {str(e)}\n")
+
+            elif openai_client:
+                # Construct messages context for OpenAI
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                if algo_context:
+                    messages.append({
+                        "role": "system",
+                        "content": f"學生目前正在瀏覽【{algo_context}】演算法的章節。請針對該演算法與其相關特質（如分類/回歸屬性、建模細節）回答或引導學生的疑惑。"
+                    })
+                messages.append({"role": "user", "content": user_message})
+
                 try:
                     # Stream answer from OpenAI
                     response = await openai_client.chat.completions.create(
@@ -349,7 +399,7 @@ async def websocket_ai_chat(websocket: WebSocket):
                 else:
                     algo_info = f"在【{algo_context}】" if algo_context else "在機器學習"
                     mock_text = (
-                        f"你好！我是你的 AI 機器學習助教（目前處於模擬演示模式，尚未配置 `OPENAI_API_KEY`）。\n\n"
+                        f"你好！我是你的 AI 機器學習助教（目前處於模擬演示模式，尚未配置 `GEMINI_API_KEY` 或 `OPENAI_API_KEY`）。\n\n"
                         f"你所詢問的問題是：『{user_message}』。\n\n"
                         f"當我們{algo_info}進行建模時，助教建議你可以遵循這幾個思考方向：\n"
                         f"1. **資料品質與特徵定義**：輸入特徵是否與目標變數高度相關？是否需要特徵縮放？\n"
