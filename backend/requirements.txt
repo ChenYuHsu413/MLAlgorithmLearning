@@ -4,3 +4,4 @@ gunicorn
 pydantic
 openai
 python-dotenv
+websockets
