@@ -2,11 +2,11 @@ export default function QuizPanel({ active, answers, onSelectAnswer }) {
   return (
     <article className="panel quizPanel">
       <h2>小測驗</h2>
-      <p>{active.quiz[0]}</p>
+      <p>{active.quiz.question}</p>
       <div className="quizOptions">
-        {active.quiz[1].map((option, index) => {
+        {active.quiz.options.map((option, index) => {
           const hasAnswer = answers[active.id] !== undefined;
-          const isCorrect = index === active.quiz[2];
+          const isCorrect = index === active.quiz.correctIndex;
           return (
             <button
               key={option}

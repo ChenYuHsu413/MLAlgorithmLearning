@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { reportGuide, reportInsights } from '../lib/algorithmReport';
-import { meta, implementationExamples, filters, executionResults, enrich, chartType } from '../lib/algorithmData';
+import { reportGuide } from '../lib/algorithmReport';
+import { implementationExamples, filters, executionResults, chartType } from '../lib/algorithmData';
 import AIChatbot from '../components/AIChatbot';
 import MiniChart from '../components/MiniChart';
 import HeroIllustration from '../components/HeroIllustration';
@@ -39,9 +39,8 @@ export default function Home() {
         return res.json();
       })
       .then((data) => {
-        const enriched = data.map(enrich);
-        setAlgorithms(enriched);
-        setActiveId(enriched[0]?.id ?? 0);
+        setAlgorithms(data);
+        setActiveId(data[0]?.id ?? 0);
       })
       .catch((err) => {
         console.error(err);
@@ -76,13 +75,14 @@ export default function Home() {
 
   const active = algorithms.find((algo) => algo.id === activeId) || filtered[0] || algorithms[0];
   const activeExample = active ? implementationExamples[active.id] : null;
-  const activeInsight = active ? reportInsights[active.id] : null;
+  const activeInsight = active || null;
   const done = Object.values(answers).filter(Boolean).length;
   const progress = algorithms.length ? Math.round((done / algorithms.length) * 100) : 0;
 
   function selectAnswer(algoId, index) {
     if (answers[algoId] === true) return;
-    const correctIndex = meta[algoId].quiz[2];
+    const algo = algorithms.find((a) => a.id === algoId);
+    const correctIndex = algo?.quiz?.correctIndex ?? -1;
     setAnswers((current) => ({ ...current, [algoId]: index === correctIndex }));
   }
 

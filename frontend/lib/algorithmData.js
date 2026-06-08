@@ -1,16 +1,3 @@
-export const meta = {
-  0: { shortName: '線性迴歸', category: '監督式', task: '迴歸', level: '入門', color: '#ef4444', code: 'LR', concept: '用最佳直線描述特徵與連續數值之間的關係。', bestFor: '房價預測、銷售額、趨勢估計', quiz: ['線性迴歸最適合預測什麼？', ['連續數值', '資料群中心', '圖像邊緣'], 0] },
-  1: { shortName: '邏輯迴歸', category: '監督式', task: '分類', level: '入門', color: '#f97316', code: 'LG', concept: '把線性分數轉成機率，常用於二元分類。', bestFor: '垃圾郵件、是否違約、是否罹病', quiz: ['邏輯迴歸輸出的核心意義是什麼？', ['類別機率', '樹的深度', '主成分方向'], 0] },
-  2: { shortName: '決策樹', category: '監督式', task: '分類', level: '入門', color: '#eab308', code: 'DT', concept: '用條件分支一步步切分資料，形成容易解釋的規則。', bestFor: '規則清楚、需要解釋的決策問題', quiz: ['決策樹最直觀的優勢是什麼？', ['決策流程易解釋', '永遠不會過擬合', '不需要資料'], 0] },
-  3: { shortName: '隨機森林', category: '集成', task: '分類/迴歸', level: '中階', color: '#22c55e', code: 'RF', concept: '組合多棵決策樹，用投票或平均提升穩定性。', bestFor: '高維資料、穩健預測、特徵多的任務', quiz: ['隨機森林如何整合分類結果？', ['投票', '只選第一棵樹', '刪除分支'], 0] },
-  4: { shortName: '支援向量機', category: '監督式', task: '分類', level: '中階', color: '#3b82f6', code: 'SV', concept: '尋找最大間隔的分隔邊界，也能處理非線性資料。', bestFor: '中小型高維分類問題', quiz: ['SVM 主要追求最大化什麼？', ['類別間隔', '資料筆數', '群中心數量'], 0] },
-  5: { shortName: 'K近鄰', category: '監督式', task: '分類/迴歸', level: '入門', color: '#6366f1', code: 'KN', concept: '找出最相近的 K 個樣本，再投票或平均。', bestFor: '相似性推薦、資料量較小的分類', quiz: ['KNN 預測時主要依賴什麼？', ['鄰近樣本', '反向傳播', '隨機森林'], 0] },
-  6: { shortName: '朴素貝葉斯', category: '監督式', task: '分類', level: '入門', color: '#a855f7', code: 'NB', concept: '用貝葉斯定理估計類別機率，假設特徵條件獨立。', bestFor: '文字分類、垃圾郵件過濾', quiz: ['朴素貝葉斯常見假設是什麼？', ['條件獨立', '完全線性', '無需類別'], 0] },
-  7: { shortName: 'K-Means 聚類', category: '非監督式', task: '聚類', level: '入門', color: '#06b6d4', code: 'KM', concept: '反覆分配資料到 K 個群，並更新每個群的中心。', bestFor: '客戶分群、市場區隔、探索資料', quiz: ['K-Means 執行前通常要指定什麼？', ['K 值', '標籤答案', '樹深度'], 0] },
-  8: { shortName: '主成分分析', category: '非監督式', task: '降維', level: '中階', color: '#8b5cf6', code: 'PC', concept: '找出保留最多變異的方向，把高維資料壓縮到低維。', bestFor: '資料視覺化、降維、去雜訊', quiz: ['PCA 的主要目的通常是什麼？', ['降維', '增加標籤', '產生決策樹'], 0] },
-  9: { shortName: '神經網路', category: '深度學習', task: '分類/生成', level: '進階', color: '#f97316', code: 'NN', concept: '透過多層神經元學習複雜非線性映射。', bestFor: '影像、語音、自然語言', quiz: ['神經網路擅長處理哪類關係？', ['複雜非線性', '只能直線', '固定群中心'], 0] },
-};
-
 export const animationDescriptions = {
   0: ['初始狀態：資料點散布，等待擬合', '正斜率：趨勢向右上方', '陡斜率：強正相關擬合', '負斜率：反向趨勢', '水平線：無線性相關基準'],
   1: ['Sigmoid 初始：分類邊界剛建立', '邊界右移：決策面調整中', '邊界確立：清晰的二元分類區', '高置信度：多數點正確分類', '極端分離：兩類幾乎完全分開'],
@@ -196,10 +183,6 @@ export const executionResults = {
   8: ['投影完成', 'Explained variance: 78%', 'Output shape: (120, 2)'],
   9: ['模型完成 8 epochs 訓練', 'Validation accuracy: 0.96', 'Loss: 0.11'],
 };
-
-export function enrich(algo) {
-  return { ...algo, ...meta[algo.id] };
-}
 
 export function chartType(id) {
   if ([2, 3].includes(id)) return 'tree';
