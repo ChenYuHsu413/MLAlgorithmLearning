@@ -30,6 +30,7 @@ export default function Home() {
   const [codeOutput, setCodeOutput] = useState(null);
   const [learningNotice, setLearningNotice] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
   const labRef = useRef(null);
 
   useEffect(() => {
@@ -140,7 +141,6 @@ export default function Home() {
             </button>
           ))}
           <span>學習資源</span>
-          <a href="#examples">實作範例</a>
           <a href="#compare">演算法比較</a>
         </nav>
         <button className="testButton" type="button">測驗中心</button>
@@ -156,11 +156,36 @@ export default function Home() {
             <button type="button" className="sceneToggle" onClick={() => setScene((current) => current === 'light' ? 'dark' : 'light')}>
               {scene === 'light' ? 'Dark Scene' : 'Light Scene'}
             </button>
-            <button type="button">學習路徑</button>
-            <button type="button">進度追蹤</button>
+            <button type="button" className={`progressToggle${showProgress ? ' active' : ''}`} onClick={() => setShowProgress((v) => !v)}>進度追蹤</button>
             <div className="ring" style={{ '--progress': `${progress}%` }}><span>{progress}%</span></div>
           </div>
         </header>
+
+        {showProgress && (
+          <section className="progressPanel">
+            <div className="progressHeader">
+              <h3>測驗進度</h3>
+              <span>{done} / {algorithms.length} 完成</span>
+            </div>
+            <div className="progressGrid">
+              {algorithms.map((algo) => {
+                const status = answers[algo.id];
+                return (
+                  <button
+                    key={algo.id}
+                    type="button"
+                    className={`progressItem${status === true ? ' done' : status !== undefined ? ' tried' : ''}`}
+                    onClick={() => { startLearning(algo.id); setShowProgress(false); }}
+                  >
+                    <span className="dot" style={{ background: algo.color }} />
+                    <span className="pName">{algo.shortName}</span>
+                    <span className="pBadge">{status === true ? '✓' : status !== undefined ? '✗' : '─'}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         <section className="hero">
           <div className="heroCopy">
@@ -284,18 +309,6 @@ export default function Home() {
           <ul className="selectionRules">
             {reportGuide.selectionRules.map((rule) => <li key={rule}>{rule}</li>)}
           </ul>
-        </section>
-
-        <section className="panel examplesOverview">
-          <h2>所有演算法實作索引</h2>
-          <div className="exampleGrid">
-            {algorithms.map((algo) => (
-              <button key={algo.id} type="button" onClick={() => startLearning(algo.id)} style={{ '--accent': algo.color }}>
-                <strong>{algo.shortName}</strong>
-                <span>{implementationExamples[algo.id].title}</span>
-              </button>
-            ))}
-          </div>
         </section>
 
         <section id="compare" className="panel comparePanel">
@@ -824,38 +837,85 @@ export default function Home() {
           margin: 0;
         }
 
-        /* ── Examples overview & Compare ── */
-        .examplesOverview {
+        /* ── Progress panel ── */
+        .progressPanel {
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--surface);
+          padding: 14px 16px 16px;
           margin-bottom: 18px;
+          box-shadow: 0 8px 24px var(--shadow);
         }
-        .exampleGrid {
+        .progressHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .progressHeader h3 {
+          margin: 0;
+          font-size: 1rem;
+        }
+        .progressHeader span {
+          color: var(--accent);
+          font-weight: 700;
+          font-size: 0.9rem;
+        }
+        .progressGrid {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: 14px;
+          gap: 8px;
         }
-        .exampleGrid button {
-          min-height: 94px;
+        .progressItem {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           border: 1px solid var(--line);
-          border-left: 5px solid var(--accent);
-          border-radius: 8px;
+          border-radius: 7px;
           background: var(--surface-soft);
           color: var(--text);
-          padding: 12px;
-          text-align: left;
+          padding: 10px 12px;
           cursor: pointer;
           font: inherit;
+          font-size: 0.88rem;
+          text-align: left;
+          transition: border-color 0.15s;
         }
-        .exampleGrid strong,
-        .exampleGrid span {
-          display: block;
+        .progressItem.done {
+          border-color: #86efac;
+          background: rgba(220, 252, 231, 0.4);
         }
-        .exampleGrid span {
-          margin-top: 8px;
+        .progressItem.tried {
+          border-color: #fca5a5;
+          background: rgba(254, 226, 226, 0.4);
+        }
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .pName {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .pBadge {
+          font-weight: 800;
           color: var(--muted);
-          font-size: 0.84rem;
-          line-height: 1.45;
+          flex-shrink: 0;
         }
+        .progressItem.done .pBadge { color: #16a34a; }
+        .progressItem.tried .pBadge { color: #dc2626; }
+        .progressToggle.active {
+          background: var(--accent) !important;
+          border-color: var(--accent) !important;
+          color: #fff !important;
+        }
+
+        /* ── Compare ── */
         .comparePanel {
           margin-bottom: 18px;
         }
@@ -904,7 +964,7 @@ export default function Home() {
           .heroArt {
             min-height: 260px;
           }
-          .exampleGrid {
+          .progressGrid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
           .reportGrid,
@@ -930,7 +990,7 @@ export default function Home() {
             font-size: 1.55rem;
           }
           nav,
-          .exampleGrid,
+          .progressGrid,
           .reportGrid,
           .flowRail,
           .metricGrid {
