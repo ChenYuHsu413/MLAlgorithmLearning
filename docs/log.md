@@ -250,3 +250,160 @@ git commit -m "refactor: split index.js into components, fix CORS/WS/quiz persis
 
 git push
 ```
+
+---
+
+## 8. 第七階段（2026-06-08）：演算法資料統一來源、CORS 部署診斷、進度追蹤實作
+
+### 8.1 使用者指令
+```
+我們繼續剛才的作業，先來做演算法統一來源
+（部署後截圖）我目前把這前後端都部署在 render 上面，但是現在我打開網頁沒辦法正常顯示資料，我有什麼設定要調整嗎
+感覺這個實作索引是不是多餘了，另外學習路徑跟進度追蹤都沒有反應，你可以幫我看一眼 sources 裡面那個 pdf 檔案嗎
+B（選擇刪實作索引 + 實作真實進度追蹤功能）
+你幫我把剛才這些指令寫入 Log 然後更新工作報告
+```
+
+### 8.2 演算法資料統一來源
+
+**目標：** 將三份各自維護的資料合併為後端 API 單一來源
+
+| 原始來源 | 欄位 |
+| :--- | :--- |
+| `backend/main.py` ALGORITHMS | id, name, description, example, advantages, disadvantages |
+| `frontend/lib/algorithmData.js` meta | shortName, category, task, level, color, code, concept, bestFor, quiz |
+| `frontend/lib/algorithmReport.js` reportInsights | output, core, workflow, metrics, pitfalls, practice |
+
+**新增 Pydantic 模型：**
+```python
+class QuizItem(BaseModel):
+    question: str
+    options: List[str]
+    correctIndex: int
+
+class Algorithm(BaseModel):
+    # 原有欄位
+    id: int
+    name: str
+    description: str
+    example: str
+    advantages: List[str]
+    disadvantages: List[str]
+    # 合入 meta
+    shortName: str
+    category: str
+    task: str
+    level: str
+    color: str
+    code: str
+    concept: str
+    bestFor: str
+    quiz: QuizItem
+    # 合入 reportInsights
+    output: str
+    core: str
+    workflow: List[str]
+    metrics: List[str]
+    pitfalls: List[str]
+    practice: str
+```
+
+**前端清理：**
+```javascript
+// algorithmData.js：移除 meta 物件，移除 enrich()
+// algorithmReport.js：移除 reportInsights，只保留 reportGuide
+// index.js：移除 meta / reportInsights import，activeInsight = active
+// QuizPanel.jsx：quiz[0/1/2] → quiz.question / quiz.options / quiz.correctIndex
+// algorithms/[id].js：直接讀 API 欄位，移除 reportInsights 引用
+```
+
+**Git 提交：**
+```bash
+git add backend/main.py frontend/components/QuizPanel.jsx \
+        frontend/lib/algorithmData.js frontend/lib/algorithmReport.js \
+        "frontend/pages/algorithms/[id].js" frontend/pages/index.js
+
+git commit -m "refactor: unify algorithm data source — merge meta and reportInsights into backend API"
+git push
+# commit: 1a4d507
+```
+
+### 8.3 Render 部署 CORS 診斷
+
+**問題：** 前端 `https://ml-algorithm-learning.onrender.com` 無法讀取後端 `https://mlalgorithmlearning.onrender.com/api/algorithms`，主控台出現：
+```
+Access to fetch blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present
+```
+
+**根因：** 上一階段已將 CORS 從 `*` 改為讀取環境變數 `ALLOWED_ORIGINS`，但 Render 後端服務未設定該變數（預設值只允許 `localhost:3000`）。
+
+**修復方式（Render Dashboard 操作，無需改程式碼）：**
+```
+後端服務 → Environment → 新增：
+  ALLOWED_ORIGINS = https://ml-algorithm-learning.onrender.com
+
+前端服務 → Environment → 確認：
+  NEXT_PUBLIC_API_BASE_URL = https://mlalgorithmlearning.onrender.com
+  NEXT_PUBLIC_WS_URL       = wss://mlalgorithmlearning.onrender.com/ws/ai-chat
+```
+
+### 8.4 PDF 研讀報告檔案審查
+
+**檔案：** `sources/machine_learning_top10_study_report.pdf`（29 頁）
+
+**結論：**
+- PDF 的 10 大演算法核心內容（概念、流程、指標、錯誤、練習）**已全部被前幾階段萃取完畢**，目前後端 ALGORITHMS 資料已完整涵蓋。
+- 尚未使用的內容：CRISP-DM 建模方法論（p.29）、50 Startups 案例（p.29）、Ridge/Lasso 補充細節（Linear Regression）、Gaussian/Bernoulli Naive Bayes 變體說明。
+- 注意：PDF 使用非標準中文字型嵌入方式，`pdfplumber` 無法解碼繁中文字，僅能讀取英文關鍵字。
+
+### 8.5 移除實作索引、實作進度追蹤
+
+**移除：**
+- `所有演算法實作索引` section（與上方演算法卡片完全重複，冗餘）
+- `學習路徑` 按鈕（空殼 dead button，無任何功能）
+- Sidebar `#examples` 錨點連結
+
+**新增：進度追蹤面板**
+```jsx
+// 進度追蹤按鈕切換 showProgress state
+<button className={`progressToggle${showProgress ? ' active' : ''}`}
+  onClick={() => setShowProgress(v => !v)}>進度追蹤</button>
+
+// 展開面板：顯示 10 個演算法的測驗狀態
+{showProgress && (
+  <section className="progressPanel">
+    <div className="progressHeader">
+      <h3>測驗進度</h3>
+      <span>{done} / {algorithms.length} 完成</span>
+    </div>
+    <div className="progressGrid">
+      {algorithms.map((algo) => {
+        const status = answers[algo.id];
+        return (
+          <button className={`progressItem${status === true ? ' done' : status !== undefined ? ' tried' : ''}`}
+            onClick={() => { startLearning(algo.id); setShowProgress(false); }}>
+            <span className="dot" style={{ background: algo.color }} />
+            <span className="pName">{algo.shortName}</span>
+            <span className="pBadge">{status === true ? '✓' : status !== undefined ? '✗' : '─'}</span>
+          </button>
+        );
+      })}
+    </div>
+  </section>
+)}
+```
+
+**面板說明：**
+- 彩色圓點：各演算法識別色
+- `✓` 綠色 = 答對；`✗` 紅色 = 答錯過；`─` = 未作答
+- 點任何格子 → 跳至該演算法學習區並收合面板
+- 按鈕按下時顯示 accent 顏色（active 狀態視覺回饋）
+
+**Git 提交：**
+```bash
+git add frontend/pages/index.js
+
+git commit -m "feat: replace dead buttons with real progress tracker, remove redundant examples index"
+git push
+# commit: c8215cf
+```
