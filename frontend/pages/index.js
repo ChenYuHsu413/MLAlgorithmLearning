@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { reportGuide, reportInsights } from '../lib/algorithmReport';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
@@ -177,6 +176,19 @@ model.fit(x_train, y_train, epochs=8, validation_split=0.2)`,
 
 const filters = ['全部', '監督式', '非監督式', '集成', '深度學習'];
 
+const executionResults = {
+  0: ['模型完成訓練', 'RMSE: 18423.7', '預測價格: [312000, 428500, 515200]'],
+  1: ['模型完成訓練', 'Accuracy: 0.91', 'Spam probability: 0.82'],
+  2: ['決策樹已建立', 'Tree depth: 4', 'Accuracy: 0.88'],
+  3: ['森林投票完成', 'Accuracy: 0.94', 'Top feature: credit_score'],
+  4: ['最佳分隔超平面已更新', 'F1-score: 0.92', 'Support vectors: 37'],
+  5: ['鄰近點搜尋完成', 'K=5', 'Accuracy: 0.87'],
+  6: ['機率表已估計', 'Accuracy: 0.89', 'Predicted topic: technology'],
+  7: ['群中心重新配置完成', 'Clusters: 4', 'Silhouette: 0.62'],
+  8: ['投影完成', 'Explained variance: 78%', 'Output shape: (120, 2)'],
+  9: ['模型完成 8 epochs 訓練', 'Validation accuracy: 0.96', 'Loss: 0.11'],
+};
+
 function enrich(algo) {
   return { ...algo, ...meta[algo.id] };
 }
@@ -278,8 +290,14 @@ export default function Home() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('全部');
   const [answers, setAnswers] = useState({});
-  const [scene, setScene] = useState('light');
+  const [scene, setScene] = useState('dark');
   const [error, setError] = useState('');
+  const [simulationRun, setSimulationRun] = useState(0);
+  const [simulationStatus, setSimulationStatus] = useState('尚未開始模擬');
+  const [codeOutput, setCodeOutput] = useState(null);
+  const [learningNotice, setLearningNotice] = useState('');
+  const [showDetails, setShowDetails] = useState(false);
+  const labRef = useRef(null);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/algorithms`)
@@ -297,6 +315,19 @@ export default function Home() {
         setError('目前無法讀取資料，請確認後端 API 是否已啟動。');
       });
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedScene = window.localStorage.getItem('ml-learning-scene');
+    if (storedScene === 'light' || storedScene === 'dark') {
+      setScene(storedScene);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('ml-learning-scene', scene);
+  }, [scene]);
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -316,6 +347,43 @@ export default function Home() {
   function selectAnswer(algoId, index) {
     const correctIndex = meta[algoId].quiz[2];
     setAnswers((current) => ({ ...current, [algoId]: index === correctIndex }));
+  }
+
+  function startLearning(algoId) {
+    const selected = algorithms.find((algo) => algo.id === algoId);
+    setActiveId(algoId);
+    setCodeOutput(null);
+    setLearningNotice(`${selected?.shortName || '演算法'} 學習區已載入`);
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => setLearningNotice(''), 2200);
+      window.requestAnimationFrame(() => {
+        labRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }
+
+  function runSimulation() {
+    if (!active) return;
+    setSimulationRun((current) => current + 1);
+
+    const action = active.task.includes('分類')
+      ? '分類邊界已更新'
+      : active.task.includes('聚類')
+        ? '群中心已重新配置'
+        : active.task.includes('降維')
+          ? '主成分投影已完成'
+          : '趨勢線已重新擬合';
+
+    setSimulationStatus(`${active.shortName}：${action}`);
+  }
+
+  function executeCode() {
+    if (!active) return;
+    setCodeOutput({
+      title: `${active.shortName} 執行結果`,
+      lines: executionResults[active.id] || ['程式碼執行完成', 'Result: ok'],
+    });
   }
 
   function chartType(id) {
@@ -339,7 +407,7 @@ export default function Home() {
           <a className="navActive">首頁總覽</a>
           <span>十大演算法</span>
           {algorithms.map((algo, index) => (
-            <button key={algo.id} type="button" onClick={() => setActiveId(algo.id)}>
+            <button key={algo.id} type="button" onClick={() => startLearning(algo.id)}>
               <b style={{ background: algo.color }}>{index + 1}</b>
               {algo.shortName}
             </button>
@@ -397,28 +465,30 @@ export default function Home() {
 
         <section className="cardRail">
           {filtered.map((algo, index) => (
-            <button key={algo.id} type="button" className={`algoCard ${active?.id === algo.id ? 'active' : ''}`} onClick={() => setActiveId(algo.id)}>
+            <button key={algo.id} type="button" className={`algoCard ${active?.id === algo.id ? 'active' : ''}`} onClick={() => startLearning(algo.id)}>
               <b style={{ background: algo.color }}>{index + 1}</b>
               <h3>{algo.shortName}</h3>
               <MiniChart type={chartType(algo.id)} color={algo.color} />
               <p>{algo.concept}</p>
-              <span>開始學習</span>
+              <span>{active?.id === algo.id ? '正在學習' : '開始學習'}</span>
             </button>
           ))}
         </section>
 
+        {learningNotice && <p className="learningNotice">{learningNotice}</p>}
+
         {active && (
-          <section className="labGrid">
+          <section ref={labRef} className="labGrid">
             <article className="panel visualPanel">
               <h2>互動式可視化</h2>
               <p>目前選擇：{active.shortName}</p>
-              <div className="bigChart">
+              <div className={`bigChart ${simulationRun ? 'isRunning' : ''}`} key={`${active.id}-${simulationRun}`}>
                 <MiniChart type={chartType(active.id)} color={active.color} />
               </div>
               <div className="controlBox">
                 <label>
                   選擇演算法
-                  <select value={active.id} onChange={(event) => setActiveId(Number(event.target.value))}>
+                  <select value={active.id} onChange={(event) => startLearning(Number(event.target.value))}>
                     {algorithms.map((algo) => <option key={algo.id} value={algo.id}>{algo.shortName}</option>)}
                   </select>
                 </label>
@@ -426,7 +496,12 @@ export default function Home() {
                   <span>任務類型</span>
                   <strong>{active.task}</strong>
                 </div>
-                <button type="button">開始模擬</button>
+                <div className="simulationStats">
+                  <span><b>{simulationRun}</b> 模擬次數</span>
+                  <span><b>{Math.min(98, 82 + ((simulationRun + active.id) % 12))}%</b> 估計表現</span>
+                </div>
+                <p className="simulationStatus">{simulationStatus}</p>
+                <button type="button" onClick={runSimulation}>{simulationRun ? '重新模擬' : '開始模擬'}</button>
               </div>
             </article>
 
@@ -442,7 +517,14 @@ export default function Home() {
                 {activeExample.steps.map((step) => <li key={step}>{step}</li>)}
               </ol>
               <pre>{activeExample.code}</pre>
-              <Link href={`/algorithms/${active.id}`}>查看完整說明</Link>
+              <button type="button" className="runCodeButton" onClick={executeCode}>執行程式碼</button>
+              {codeOutput && (
+                <div className="codeOutput" aria-live="polite">
+                  <strong>{codeOutput.title}</strong>
+                  {codeOutput.lines.map((line) => <code key={line}>{line}</code>)}
+                </div>
+              )}
+              <button type="button" className="detailButton" onClick={() => setShowDetails(true)}>查看完整說明</button>
             </article>
 
             <article className="panel quizPanel">
@@ -530,7 +612,7 @@ export default function Home() {
           <h2>所有演算法實作索引</h2>
           <div className="exampleGrid">
             {algorithms.map((algo) => (
-              <button key={algo.id} type="button" onClick={() => setActiveId(algo.id)} style={{ '--accent': algo.color }}>
+              <button key={algo.id} type="button" onClick={() => startLearning(algo.id)} style={{ '--accent': algo.color }}>
                 <strong>{algo.shortName}</strong>
                 <span>{implementationExamples[algo.id].title}</span>
               </button>
@@ -566,6 +648,49 @@ export default function Home() {
           </div>
         </section>
       </section>
+
+      {showDetails && active && activeInsight && (
+        <div className="modalLayer" role="presentation" onClick={() => setShowDetails(false)}>
+          <section className="detailModal" role="dialog" aria-modal="true" aria-labelledby="detail-title" onClick={(event) => event.stopPropagation()}>
+            <div className="modalHeader">
+              <div>
+                <span>{active.category}</span>
+                <h2 id="detail-title">{active.shortName} 完整說明</h2>
+              </div>
+              <button type="button" aria-label="關閉完整說明" onClick={() => setShowDetails(false)}>×</button>
+            </div>
+            <p className="modalLead">{active.concept}</p>
+            <div className="modalGrid">
+              <article>
+                <h3>適合情境</h3>
+                <p>{active.bestFor}</p>
+              </article>
+              <article>
+                <h3>核心重點</h3>
+                <p>{activeInsight.core}</p>
+              </article>
+              <article>
+                <h3>建模流程</h3>
+                <ol>
+                  {activeInsight.workflow.map((item) => <li key={item}>{item}</li>)}
+                </ol>
+              </article>
+              <article>
+                <h3>常見錯誤</h3>
+                <ul>
+                  {activeInsight.pitfalls.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </article>
+            </div>
+            <div className="modalFooter">
+              <div className="chips">
+                {activeInsight.metrics.map((item) => <span key={item}>{item}</span>)}
+              </div>
+              <button type="button" onClick={() => setShowDetails(false)}>完成</button>
+            </div>
+          </section>
+        </div>
+      )}
 
       <style jsx>{`
         .appShell {
@@ -983,6 +1108,22 @@ export default function Home() {
           font-weight: 700;
           font-size: 0.82rem;
         }
+        .algoCard.active span {
+          background: var(--accent);
+          border-color: var(--accent);
+          color: #fff;
+        }
+        .learningNotice {
+          width: fit-content;
+          border: 1px solid var(--line);
+          border-radius: 7px;
+          background: var(--surface);
+          color: var(--accent);
+          padding: 9px 12px;
+          margin: -4px 0 14px;
+          font-weight: 800;
+          box-shadow: 0 8px 20px var(--shadow);
+        }
         .labGrid {
           display: grid;
           grid-template-columns: 1.05fr 1.25fr 0.9fr;
@@ -1028,6 +1169,23 @@ export default function Home() {
           width: 82%;
           height: 180px;
         }
+        .bigChart.isRunning :global(.miniChart) {
+          animation: chartPulse 780ms ease-out;
+        }
+        @keyframes chartPulse {
+          0% {
+            opacity: 0.55;
+            transform: translateY(8px) scale(0.96);
+          }
+          55% {
+            opacity: 1;
+            transform: translateY(-2px) scale(1.03);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
         .controlBox {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 130px;
@@ -1060,6 +1218,30 @@ export default function Home() {
           font: inherit;
           font-weight: 800;
         }
+        .simulationStats {
+          grid-column: 1 / -1;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .simulationStats span {
+          border: 1px solid var(--line-soft);
+          border-radius: 7px;
+          background: var(--surface-soft);
+          padding: 10px;
+        }
+        .simulationStats b {
+          display: block;
+          color: var(--text);
+          font-size: 1.05rem;
+        }
+        .simulationStatus {
+          grid-column: 1 / -1;
+          min-height: 24px;
+          margin: 0;
+          color: var(--accent) !important;
+          font-weight: 800;
+        }
         .steps {
           display: grid;
           gap: 7px;
@@ -1077,15 +1259,48 @@ export default function Home() {
           line-height: 1.6;
           font-size: 0.82rem;
         }
-        .codePanel a {
+        .runCodeButton {
+          width: 100%;
+          border: 0;
+          border-radius: 7px;
+          background: var(--accent);
+          color: #fff;
+          padding: 12px;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 800;
+          margin-bottom: 10px;
+        }
+        .codeOutput {
+          display: grid;
+          gap: 7px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--surface-soft);
+          padding: 12px;
+          margin-bottom: 10px;
+        }
+        .codeOutput strong {
+          color: var(--text);
+        }
+        .codeOutput code {
+          display: block;
+          color: var(--muted-strong);
+          font-family: Consolas, Monaco, monospace;
+          font-size: 0.86rem;
+        }
+        .detailButton {
+          width: 100%;
           display: block;
           border: 1px solid var(--line);
           border-radius: 7px;
+          background: var(--surface);
           color: var(--accent);
           text-align: center;
-          text-decoration: none;
           font-weight: 800;
           padding: 11px;
+          cursor: pointer;
+          font: inherit;
         }
         .quizOptions {
           display: grid;
@@ -1202,6 +1417,104 @@ export default function Home() {
         .metricGrid p {
           margin: 0;
         }
+        .modalLayer {
+          position: fixed;
+          inset: 0;
+          z-index: 50;
+          display: grid;
+          place-items: center;
+          background: rgba(15, 23, 42, 0.58);
+          padding: 22px;
+        }
+        .detailModal {
+          width: min(820px, 100%);
+          max-height: min(760px, calc(100vh - 44px));
+          overflow: auto;
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: var(--surface);
+          color: var(--text);
+          box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+          padding: 22px;
+        }
+        .modalHeader {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          align-items: flex-start;
+          border-bottom: 1px solid var(--line-soft);
+          padding-bottom: 16px;
+          margin-bottom: 16px;
+        }
+        .modalHeader span {
+          color: var(--accent);
+          font-weight: 800;
+          font-size: 0.86rem;
+        }
+        .modalHeader h2 {
+          margin: 5px 0 0;
+          font-size: 1.45rem;
+        }
+        .modalHeader button {
+          width: 36px;
+          height: 36px;
+          border: 1px solid var(--line);
+          border-radius: 7px;
+          background: var(--surface-soft);
+          color: var(--text);
+          cursor: pointer;
+          font-size: 1.4rem;
+          line-height: 1;
+        }
+        .modalLead {
+          color: var(--muted);
+          line-height: 1.75;
+          margin: 0 0 16px;
+        }
+        .modalGrid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .modalGrid article {
+          border: 1px solid var(--line-soft);
+          border-radius: 8px;
+          background: var(--surface-soft);
+          padding: 14px;
+        }
+        .modalGrid h3 {
+          margin: 0 0 8px;
+          font-size: 1rem;
+        }
+        .modalGrid p,
+        .modalGrid li {
+          color: var(--muted);
+          line-height: 1.65;
+        }
+        .modalGrid ol,
+        .modalGrid ul {
+          margin: 0;
+          padding-left: 1.2rem;
+        }
+        .modalFooter {
+          display: flex;
+          justify-content: space-between;
+          gap: 14px;
+          align-items: center;
+          border-top: 1px solid var(--line-soft);
+          margin-top: 16px;
+          padding-top: 16px;
+        }
+        .modalFooter button {
+          border: 0;
+          border-radius: 7px;
+          background: var(--accent);
+          color: #fff;
+          padding: 11px 18px;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 800;
+        }
         .exampleGrid {
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -1284,6 +1597,9 @@ export default function Home() {
           .metricGrid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+          .modalGrid {
+            grid-template-columns: 1fr;
+          }
         }
         @media (max-width: 680px) {
           .workspace {
@@ -1314,6 +1630,10 @@ export default function Home() {
           }
           .panelHeader {
             display: grid;
+          }
+          .modalFooter {
+            align-items: stretch;
+            flex-direction: column;
           }
         }
       `}</style>
