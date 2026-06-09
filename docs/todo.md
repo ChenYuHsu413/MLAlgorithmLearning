@@ -88,8 +88,69 @@ Generated: 2026-06-09
 
 ---
 
+## Phase 5 — Interactive Algorithm Labs（仿線性迴歸實驗室）
+
+為剩餘 9 個演算法各建立互動模擬實驗室，仿照 `LinearRegressionLab.jsx` 的架構：
+後端新增 API 端點生成玩具資料並執行演算法，前端以滑桿控制超參數，SVG 即時顯示結果。
+
+**建議順序：先易後難**
+
+### 5-1. 簡單（散佈圖 + 分類邊界 / 群組）
+
+- [ ] **邏輯迴歸實驗室（LogisticRegressionLab）**
+  - 後端：生成二元分類資料，回傳決策邊界座標
+  - 前端：散佈圖 + 可調決策閾值滑桿 + 邊界線
+  - 新增端點：`POST /api/simulate-logistic-regression`
+
+- [ ] **KNN 實驗室（KNNLab）**
+  - 後端：生成分類資料，回傳 K 個最近鄰的座標與預測結果
+  - 前端：散佈圖 + K 滑桿 + 高亮最近鄰 + 分類區域色塊
+  - 新增端點：`POST /api/simulate-knn`
+
+- [ ] **K-Means 實驗室（KMeansLab）**
+  - 後端：生成 blob 資料，回傳各點群組標籤 + 群中心座標（逐輪或最終）
+  - 前端：散佈圖 + K 滑桿 + 群中心標記 + 顏色分群
+  - 新增端點：`POST /api/simulate-kmeans`
+
+- [ ] **樸素貝葉斯實驗室（NaiveBayesLab）**
+  - 後端：生成二元分類資料，回傳每個類別的 Gaussian 分布參數（μ, σ）
+  - 前端：兩條高斯曲線 SVG + 可調先驗機率滑桿 + 決策點標示
+  - 新增端點：`POST /api/simulate-naive-bayes`
+
+### 5-2. 中等（需要額外視覺設計）
+
+- [ ] **SVM 實驗室（SVMLab）**
+  - 後端：回傳決策邊界 + 支持向量座標 + margin 寬度
+  - 前端：散佈圖 + C 滑桿 + 邊界線 + margin 帶狀區域 + 支持向量標示
+  - 新增端點：`POST /api/simulate-svm`
+
+- [ ] **隨機森林實驗室（RandomForestLab）**
+  - 後端：回傳 accuracy vs n_estimators 曲線資料 + 特徵重要度
+  - 前端：折線圖（準確率趨勢）+ 特徵重要度橫條圖 + n_estimators 滑桿
+  - 新增端點：`POST /api/simulate-random-forest`
+
+- [ ] **PCA 實驗室（PCALab）**
+  - 後端：生成高維資料，回傳 2D 投影座標 + 各主成分解釋變異
+  - 前端：原始資料 vs 投影後散佈圖 + n_components 滑桿 + 解釋變異長條圖
+  - 新增端點：`POST /api/simulate-pca`
+
+### 5-3. 複雜（需客製化視覺化）
+
+- [ ] **決策樹實驗室（DecisionTreeLab）**
+  - 後端：回傳 2D 特徵空間的分割區域（矩形邊界）+ 各區域預測類別
+  - 前端：2D 特徵空間色塊（partition grid）+ max_depth 滑桿
+  - 新增端點：`POST /api/simulate-decision-tree`
+
+- [ ] **神經網路實驗室（NeuralNetworkLab）**
+  - 後端：MLPClassifier 訓練，回傳每個 epoch 的 loss / accuracy + 最終 2D 決策邊界
+  - 前端：loss 曲線折線圖 + 2D 決策邊界散佈圖 + hidden_size 滑桿
+  - 新增端點：`POST /api/simulate-neural-network`
+
+---
+
 ## Notes
 
 - **Priority order:** Phase 1 → Phase 2 → Phase 3 → Phase 4
 - Phase 2 has the highest impact on the core goal: helping visitors "really learn ML"
 - Phase 4's real code execution is the most technically complex but also the most impressive feature
+- Phase 5 builds on Phase 4's `/api/run-code` pattern; start with 5-1 (easy) before 5-2 and 5-3
