@@ -17,10 +17,13 @@
 
 - **十大演算法學習卡片**：搜尋、分類篩選（監督式、非監督式、集成、深度學習）
 - **互動式視覺化**：SVG 動畫（每個演算法 5 幀），含圖例說明與核心數學公式
-- **小測驗系統**：每個演算法 3 題（易→中→難），附解題說明，進度存入 localStorage
+- **小測驗系統**：每個演算法 3 題（易→中→難），附解題說明，進度存入 localStorage，可重置
 - **程式碼實作範例**：10 個演算法的 scikit-learn / TensorFlow 程式碼
 - **推薦學習路徑**：入門 → 中階 → 進階排序導引
-- **進度追蹤面板**：顯示 N/10 演算法測驗完成狀況
+- **演算法關係圖**：SVG 互動圖顯示演算法演進脈絡（分類變體、集成擴展、單層類比），節點可點擊跳轉
+- **深度演算法頁面**：每個演算法有獨立 URL（`/algorithms/[id]`），含完整視覺化、測驗、程式碼與深度解析，支援分享與收藏
+- **新手導覽**：首次訪問顯示 3 步驟引導 Modal，localStorage 記錄已讀狀態
+- **進度追蹤面板**：顯示 N/10 演算法測驗完成狀況，支援一鍵重置
 - **AI 機器學習助教**：WebSocket 逐字串流，支援 Gemini / Groq / OpenRouter / OpenAI 自動切換
 - **線性迴歸模擬實驗室**：調整斜率、截距、噪聲參數，Python 即時計算並繪製迴歸圖，標示 Top-10 離群點
 - **Render 冷啟動 UX**：後端暖機時顯示友善提示，自動重試，不白畫面
@@ -36,14 +39,16 @@
 │   ├── package.json
 │   ├── .env.example
 │   ├── components/
-│   │   ├── AIChatbot.tsx        # AI 助教聊天室（WebSocket 串流）
-│   │   ├── CodePanel.jsx        # 程式碼實作範例面板
-│   │   ├── DetailModal.jsx      # 演算法完整說明 Modal
-│   │   ├── HeroIllustration.jsx # Hero 區塊插圖
+│   │   ├── AIChatbot.tsx            # AI 助教聊天室（WebSocket 串流）
+│   │   ├── AlgorithmRelationshipMap.jsx  # 演算法關係 SVG 圖（可點擊節點）
+│   │   ├── CodePanel.jsx            # 程式碼實作範例面板
+│   │   ├── DetailModal.jsx          # 演算法完整說明 Modal
+│   │   ├── HeroIllustration.jsx     # Hero 區塊插圖
 │   │   ├── LinearRegressionLab.jsx  # 線性迴歸模擬實驗室
-│   │   ├── MiniChart.jsx        # SVG 動畫圖表元件（10 種演算法）
-│   │   ├── QuizPanel.jsx        # 小測驗面板（3 題制）
-│   │   └── VisualPanel.jsx      # 互動視覺化面板（圖例 + 公式）
+│   │   ├── MiniChart.jsx            # SVG 動畫圖表元件（10 種演算法）
+│   │   ├── OnboardingModal.jsx      # 首次訪問新手導覽（3 步驟）
+│   │   ├── QuizPanel.jsx            # 小測驗面板（3 題制）
+│   │   └── VisualPanel.jsx          # 互動視覺化面板（圖例 + 公式）
 │   ├── lib/
 │   │   ├── algorithmData.js     # 圖表類型、圖例、公式、程式碼範例
 │   │   └── algorithmReport.js   # 建模流程指引

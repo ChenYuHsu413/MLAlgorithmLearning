@@ -116,6 +116,61 @@ git commit -m "fix: square chart, cap lab width, yellow outliers for visibility"
 git push
 ```
 
+## Session 9 — 2026-06-09｜Phase 3 UX 全面升級
+
+### 3-1. 新手導覽（OnboardingModal）
+```bash
+# frontend/components/OnboardingModal.jsx 已存在但未掛載
+# frontend/pages/index.js：新增 import + <OnboardingModal /> 渲染
+# localStorage key: ml-onboarding-v1，只在首次訪問顯示
+git add frontend/components/OnboardingModal.jsx frontend/pages/index.js
+```
+
+### 3-2. 演算法關係圖（AlgorithmRelationshipMap）
+```bash
+# 新建 frontend/components/AlgorithmRelationshipMap.jsx
+# - SVG viewBox 800×395，10 個可點擊節點
+# - 3 條帶標籤箭頭：分類變體（LR→LogReg）、單層類比（LogReg→NN）、集成擴展（DTree→RF）
+# - 3 個分類列：監督式迴歸、監督式分類、非監督式（含虛線分隔）
+# - 節點 hover 效果，onClick → onSelect(id) → startLearning
+# frontend/pages/index.js：import + 插入 cardRail 之後
+git add frontend/components/AlgorithmRelationshipMap.jsx frontend/pages/index.js
+```
+
+### 3-3. 進度重置按鈕
+```bash
+# frontend/pages/index.js
+# - progressHeader 右側新增「重置進度」button，使用 window.confirm 防呆
+# - 點擊確認後 setAnswers({})，useEffect 自動同步清除 localStorage ml-quiz-v2
+```
+
+### 3-4. 深度演算法頁面（/algorithms/[id]）
+```bash
+# frontend/pages/algorithms/[id].js 全面重寫（原 83 行 → 270 行）
+# - import VisualPanel, CodePanel, QuizPanel, Head (next/head)
+# - 引入 implementationExamples, executionResults from algorithmData
+# - 完整狀態管理：simulationRun, simulationStatus, codeOutput, answers
+# - SEO：<Head> 含 title, description, og:title, og:description, robots
+# - 深色/淺色切換，繼承 localStorage ml-learning-scene
+# - 測驗答案與首頁共用 localStorage ml-quiz-v2
+# - 完整報告 section：優缺點、指標、陷阱、建模流程、實作練習
+```
+
+### 統一提交
+```bash
+git add frontend/components/AlgorithmRelationshipMap.jsx \
+        frontend/components/OnboardingModal.jsx \
+        frontend/pages/algorithms/[id].js \
+        frontend/pages/index.js \
+        docs/todo.md
+
+git commit -m "feat: complete Phase 3 UX improvements — onboarding, relationship map, progress reset, deep-dive pages"
+git push
+# commit: f7d5d26
+```
+
+---
+
 ## 1. 系統診斷與除錯指令
 用於檢查環境變數與埠口佔用狀況：
 ```powershell
