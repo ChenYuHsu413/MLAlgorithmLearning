@@ -169,6 +169,49 @@ git push
 # commit: f7d5d26
 ```
 
+## Session 11 — 2026-06-09｜Phase 4-2 CORS Security 確認與 render.yaml 補全
+
+### 說明
+CORS 安全限縮的程式碼已於 Session 7 完成（`allow_origins` 改讀 `ALLOWED_ORIGINS` 環境變數）。
+本階段確認實作完整性，並補上 render.yaml 前端 envVars 中遺漏的 `NEXT_PUBLIC_WS_URL`。
+
+### 確認事項（無需改程式碼）
+```python
+# backend/main.py（已於 Session 7 實作）
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000")
+allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, ...)
+```
+
+### render.yaml 補全
+```yaml
+# 前端服務新增 NEXT_PUBLIC_WS_URL（原本只有 NEXT_PUBLIC_API_BASE_URL）
+envVars:
+  - key: NEXT_PUBLIC_API_BASE_URL
+    sync: false
+  - key: NEXT_PUBLIC_WS_URL      # ← 補上
+    sync: false
+```
+
+### Render Dashboard 操作說明（部署時手動填入）
+```
+後端服務 → Environment：
+  ALLOWED_ORIGINS = https://ml-algorithm-learning.onrender.com
+
+前端服務 → Environment：
+  NEXT_PUBLIC_API_BASE_URL = https://mlalgorithmlearning.onrender.com
+  NEXT_PUBLIC_WS_URL       = wss://mlalgorithmlearning.onrender.com/ws/ai-chat
+```
+
+### Git 提交
+```bash
+git add render.yaml docs/todo.md docs/log.md "docs/工作報告.md" README.md
+git commit -m "feat: Phase 4-2 — confirm CORS security, add NEXT_PUBLIC_WS_URL to render.yaml"
+git push
+```
+
+---
+
 ## Session 10 — 2026-06-09｜Phase 4-1 Real Code Execution
 
 ### 目標

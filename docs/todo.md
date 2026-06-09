@@ -77,9 +77,9 @@ Generated: 2026-06-09
 - [x] Show actual model accuracy, predictions, and timing in the output panel
 - [x] Add input parameters the user can tweak before running (e.g., n_neighbors for KNN)
 
-### 4-2. CORS Security
-- [ ] Restrict `allow_origins` in `backend/main.py` from `["*"]` to the actual frontend domain
-- [ ] Use environment variable for the allowed origin (already have `ALLOWED_ORIGINS` in render.yaml)
+### 4-2. CORS Security ✅ DONE
+- [x] Restrict `allow_origins` in `backend/main.py` from `["*"]` to the actual frontend domain
+- [x] Use environment variable for the allowed origin (already have `ALLOWED_ORIGINS` in render.yaml)
 
 ### 4-3. Loading States
 - [ ] Add skeleton loading cards while algorithm data is fetching from the backend

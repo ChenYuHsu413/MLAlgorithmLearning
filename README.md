@@ -142,7 +142,9 @@ OPENAI_API_KEY=你的_OpenAI_API_Key       # 備援 C（付費）
 - Root Directory: `backend`
 - Build Command: `pip install -r requirements.txt`
 - Start Command: `gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT`
-- Environment Variables: `GEMINI_API_KEY`、`GROQ_API_KEY` 等（依需求設定）
+- Environment Variables（在 Render Dashboard 填入）：
+  - `ALLOWED_ORIGINS`：前端網域（如 `https://ml-algorithm-learning.onrender.com`），限制 CORS 來源
+  - `GEMINI_API_KEY`、`GROQ_API_KEY` 等（依需求設定）
 
 ### 前端 Web Service
 
@@ -150,7 +152,7 @@ OPENAI_API_KEY=你的_OpenAI_API_Key       # 備援 C（付費）
 - Root Directory: `frontend`
 - Build Command: `npm install && npm run build`
 - Start Command: `npm start`
-- Environment Variables:
+- Environment Variables（在 Render Dashboard 填入，`render.yaml` 已宣告欄位）：
 
 ```bash
 NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com
