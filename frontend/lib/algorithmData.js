@@ -190,3 +190,64 @@ export function chartType(id) {
   if (id === 9) return 'network';
   return 'line';
 }
+
+export const chartLegend = {
+  0: [
+    { symbol: '●', color: '#ef4444', label: '資料點（真實值）' },
+    { symbol: '—', color: '#3b82f6', label: '擬合直線（預測值）' },
+  ],
+  1: [
+    { symbol: '●', color: '#ef4444', label: '類別 A（負例）' },
+    { symbol: '●', color: '#22c55e', label: '類別 B（正例）' },
+    { symbol: '—', color: '#3b82f6', label: 'Sigmoid 決策邊界' },
+  ],
+  2: [
+    { symbol: '◆', color: '#eab308', label: '決策節點（分裂條件）' },
+    { symbol: '■', color: '#86efac', label: '葉節點（預測結果）' },
+  ],
+  3: [
+    { symbol: '▶', color: '#22c55e', label: '單棵決策樹' },
+    { symbol: '→', color: '#16a34a', label: '多樹整合投票' },
+  ],
+  4: [
+    { symbol: '●', color: '#ef4444', label: '類別 A 樣本' },
+    { symbol: '●', color: '#3b82f6', label: '類別 B 樣本' },
+    { symbol: '—', color: '#f59e0b', label: '決策超平面（最大間隔）' },
+  ],
+  5: [
+    { symbol: '●', color: '#a855f7', label: '待分類目標點' },
+    { symbol: '●', color: '#6366f1', label: '訓練資料點' },
+    { symbol: '○', color: '#6366f1', label: 'K 近鄰搜尋範圍' },
+  ],
+  6: [
+    { symbol: '▬', color: '#ef4444', label: '類別 A 的特徵分布' },
+    { symbol: '▬', color: '#a855f7', label: '類別 B 的特徵分布' },
+  ],
+  7: [
+    { symbol: '●', color: '#06b6d4', label: '資料點（群成員）' },
+    { symbol: '✕', color: '#f59e0b', label: '群中心（Centroid）' },
+  ],
+  8: [
+    { symbol: '●', color: '#8b5cf6', label: '原始資料點' },
+    { symbol: '→', color: '#ef4444', label: 'PC1（第一主成分方向）' },
+    { symbol: '→', color: '#22c55e', label: 'PC2（第二主成分方向）' },
+  ],
+  9: [
+    { symbol: '●', color: '#f97316', label: '激活神經元' },
+    { symbol: '○', color: '#6b7280', label: '抑制神經元' },
+    { symbol: '—', color: '#94a3b8', label: '神經元連結（權重）' },
+  ],
+};
+
+export const mathFormulas = {
+  0: { formula: 'ŷ = w₁x₁ + w₂x₂ + … + b', name: '線性方程式', desc: '訓練目標：最小化 MSE = Σ(ŷ − y)² / n' },
+  1: { formula: 'P(y=1|x) = 1 / (1 + e⁻ᶻ)，z = w·x + b', name: 'Sigmoid 函數', desc: 'z 是線性分數，Sigmoid 將其壓縮到 0~1 的機率' },
+  2: { formula: 'Gini = 1 − Σ pᵢ²', name: 'Gini 不純度', desc: 'pᵢ 是節點中各類別的比例；Gini = 0 表示節點完全純' },
+  3: { formula: 'ŷ = majority_vote(T₁(x), T₂(x), …, Tₙ(x))', name: '集成投票', desc: 'n 棵樹各自預測，取多數決（分類）或平均（迴歸）' },
+  4: { formula: 'max 2/‖w‖，限制：yᵢ(w·xᵢ + b) ≥ 1', name: '最大間隔目標', desc: '支持向量是離邊界最近的點；‖w‖ 越小間隔越大' },
+  5: { formula: 'd(a, b) = √Σ (aⱼ − bⱼ)²', name: '歐氏距離', desc: '找最近的 K 個鄰居，用其標籤投票或平均' },
+  6: { formula: 'P(y|x) ∝ P(y) · Π P(xᵢ|y)', name: '貝葉斯定理（條件獨立版）', desc: '先驗機率 × 各特徵似然度，取機率最大的類別' },
+  7: { formula: 'argmin Σᵢ Σ_{x∈Cᵢ} ‖x − μᵢ‖²', name: 'K-Means 目標函數', desc: 'μᵢ 是群 i 的中心；最小化群內所有點到中心的距離總和' },
+  8: { formula: 'Z = X · W，WᵀW = I（正交）', name: '主成分投影', desc: 'W 的各列是特徵向量（主成分方向）；Z 是降維後的新座標' },
+  9: { formula: 'aˡ = f(Wˡ · aˡ⁻¹ + bˡ)', name: '神經元激活（逐層傳遞）', desc: 'f 是激活函數（如 ReLU）；反向傳播用鏈式法則更新 W 和 b' },
+};

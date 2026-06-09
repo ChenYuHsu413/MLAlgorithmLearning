@@ -1,7 +1,10 @@
 import MiniChart from './MiniChart';
-import { animationDescriptions, chartType } from '../lib/algorithmData';
+import { animationDescriptions, chartType, chartLegend, mathFormulas } from '../lib/algorithmData';
 
 export default function VisualPanel({ active, algorithms, simulationRun, simulationStatus, onSimulate, onSelectAlgo }) {
+  const legend = chartLegend[active.id] || [];
+  const formula = mathFormulas[active.id];
+
   return (
     <article className="panel visualPanel">
       <h2>互動式可視化</h2>
@@ -9,12 +12,33 @@ export default function VisualPanel({ active, algorithms, simulationRun, simulat
       <div className={`bigChart ${simulationRun ? 'isRunning' : ''}`} key={`${active.id}-${simulationRun}`}>
         <MiniChart type={chartType(active.id)} color={active.color} stateIndex={simulationRun} algoId={active.id} />
       </div>
+
       {animationDescriptions[active.id] && (
         <p className="animDesc">
           <span className="animStep">步驟 {(simulationRun % 5) + 1}/5</span>
           {animationDescriptions[active.id][simulationRun % 5]}
         </p>
       )}
+
+      {legend.length > 0 && (
+        <div className="chartLegend">
+          {legend.map((item) => (
+            <span key={item.label} className="legendItem">
+              <i className="legendSymbol" style={{ color: item.color }}>{item.symbol}</i>
+              {item.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {formula && (
+        <div className="formulaBox">
+          <span className="formulaLabel">{formula.name}</span>
+          <code className="formulaText">{formula.formula}</code>
+          <p className="formulaDesc">{formula.desc}</p>
+        </div>
+      )}
+
       <div className="controlBox">
         <label>
           選擇演算法
@@ -90,11 +114,64 @@ export default function VisualPanel({ active, algorithms, simulationRun, simulat
           color: var(--accent);
           flex-shrink: 0;
         }
+        .chartLegend {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 12px;
+          margin: 10px 0 0;
+          padding: 8px 10px;
+          border: 1px solid var(--line-soft);
+          border-radius: 7px;
+          background: var(--surface-soft);
+        }
+        .legendItem {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.78rem;
+          color: var(--muted-strong);
+        }
+        .legendSymbol {
+          font-style: normal;
+          font-size: 1rem;
+          line-height: 1;
+          flex-shrink: 0;
+        }
+        .formulaBox {
+          margin: 10px 0 0;
+          padding: 10px 12px;
+          border-left: 3px solid var(--accent);
+          border-radius: 0 7px 7px 0;
+          background: var(--surface-soft);
+        }
+        .formulaLabel {
+          display: block;
+          font-size: 0.74rem;
+          font-weight: 700;
+          color: var(--accent);
+          margin-bottom: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+        .formulaText {
+          display: block;
+          font-family: 'Consolas', 'Monaco', monospace;
+          font-size: 0.9rem;
+          color: var(--text);
+          margin-bottom: 4px;
+        }
+        .formulaDesc {
+          margin: 0;
+          font-size: 0.78rem;
+          color: var(--muted);
+          line-height: 1.5;
+        }
         .controlBox {
           display: grid;
           grid-template-columns: minmax(0, 1fr) 130px;
           gap: 12px;
           align-items: end;
+          margin-top: 14px;
         }
         .controlBox label,
         .controlBox div {

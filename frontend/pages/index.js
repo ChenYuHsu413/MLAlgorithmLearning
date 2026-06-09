@@ -19,7 +19,7 @@ export default function Home() {
   const [answers, setAnswers] = useState(() => {
     if (typeof window === 'undefined') return {};
     try {
-      const stored = window.localStorage.getItem('ml-quiz-answers');
+      const stored = window.localStorage.getItem('ml-quiz-v2');
       return stored ? JSON.parse(stored) : {};
     } catch { return {}; }
   });
@@ -62,7 +62,7 @@ export default function Home() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem('ml-quiz-answers', JSON.stringify(answers));
+    window.localStorage.setItem('ml-quiz-v2', JSON.stringify(answers));
   }, [answers]);
 
   const filtered = useMemo(() => {
@@ -77,14 +77,29 @@ export default function Home() {
   const active = algorithms.find((algo) => algo.id === activeId) || filtered[0] || algorithms[0];
   const activeExample = active ? implementationExamples[active.id] : null;
   const activeInsight = active || null;
-  const done = Object.values(answers).filter(Boolean).length;
+  const done = algorithms.filter((algo) => {
+    const algoAnswers = answers[algo.id];
+    return Array.isArray(algoAnswers) && algo.quiz && algo.quiz.length > 0 &&
+      algo.quiz.every((_, i) => algoAnswers[i]?.correct === true);
+  }).length;
   const progress = algorithms.length ? Math.round((done / algorithms.length) * 100) : 0;
 
-  function selectAnswer(algoId, index) {
-    if (answers[algoId] === true) return;
+  function selectAnswer(algoId, questionIndex, selectedIndex) {
+    if (questionIndex === -1) {
+      setAnswers((current) => ({ ...current, [algoId]: [] }));
+      return;
+    }
     const algo = algorithms.find((a) => a.id === algoId);
-    const correctIndex = algo?.quiz?.correctIndex ?? -1;
-    setAnswers((current) => ({ ...current, [algoId]: index === correctIndex }));
+    if (!algo) return;
+    const q = algo.quiz[questionIndex];
+    if (!q) return;
+    const isCorrect = selectedIndex === q.correctIndex;
+    setAnswers((current) => {
+      const prev = Array.isArray(current[algoId]) ? [...current[algoId]] : [];
+      if (prev[questionIndex]?.correct) return current;
+      prev[questionIndex] = { selected: selectedIndex, correct: isCorrect };
+      return { ...current, [algoId]: prev };
+    });
   }
 
   function startLearning(algoId) {
@@ -169,17 +184,20 @@ export default function Home() {
             </div>
             <div className="progressGrid">
               {algorithms.map((algo) => {
-                const status = answers[algo.id];
+                const algoAnswers = answers[algo.id];
+                const isDone = Array.isArray(algoAnswers) && algo.quiz && algo.quiz.length > 0 &&
+                  algo.quiz.every((_, i) => algoAnswers[i]?.correct === true);
+                const isTried = !isDone && Array.isArray(algoAnswers) && algoAnswers.some((a) => a);
                 return (
                   <button
                     key={algo.id}
                     type="button"
-                    className={`progressItem${status === true ? ' done' : status !== undefined ? ' tried' : ''}`}
+                    className={`progressItem${isDone ? ' done' : isTried ? ' tried' : ''}`}
                     onClick={() => { startLearning(algo.id); setShowProgress(false); }}
                   >
                     <span className="dot" style={{ background: algo.color }} />
                     <span className="pName">{algo.shortName}</span>
-                    <span className="pBadge">{status === true ? '✓' : status !== undefined ? '✗' : '─'}</span>
+                    <span className="pBadge">{isDone ? '✓' : isTried ? '~' : '─'}</span>
                   </button>
                 );
               })}
@@ -215,6 +233,28 @@ export default function Home() {
           <a href="#compare">查看完整比較</a>
         </section>
 
+        {algorithms.length > 0 && (
+          <section className="learningPath">
+            <h3>推薦學習路徑</h3>
+            <div className="pathRow">
+              {['入門', '中階', '進階'].map((level, li) => (
+                <div key={level} className="pathGroup">
+                  {li > 0 && <span className="pathArrow">→</span>}
+                  <span className={`pathLevel lv${li}`}>{level}</span>
+                  <div className="pathAlgos">
+                    {algorithms.filter((a) => a.level === level).map((a) => (
+                      <button key={a.id} type="button" className="pathAlgoBtn" onClick={() => startLearning(a.id)}>
+                        <b style={{ background: a.color }}>{a.code}</b>
+                        {a.shortName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="cardRail">
           {filtered.map((algo, index) => (
             <button key={algo.id} type="button" className={`algoCard ${active?.id === algo.id ? 'active' : ''}`} onClick={() => startLearning(algo.id)}>
@@ -222,6 +262,7 @@ export default function Home() {
               <h3>{algo.shortName}</h3>
               <MiniChart type={chartType(algo.id)} color={algo.color} algoId={algo.id} />
               <p>{algo.concept}</p>
+              <span className={`levelBadge lvBadge-${algo.level}`}>{algo.level}</span>
               <span>{active?.id === algo.id ? '正在學習' : '開始學習'}</span>
             </button>
           ))}
@@ -253,6 +294,26 @@ export default function Home() {
             />
           </section>
         )}
+
+        {active && (() => {
+          const currentIndex = algorithms.findIndex((a) => a.id === activeId);
+          const nextAlgo = algorithms[currentIndex + 1];
+          return (
+            <div className="nextAlgoBar">
+              {nextAlgo ? (
+                <>
+                  <span>學完了嗎？繼續下一個：</span>
+                  <button type="button" onClick={() => startLearning(nextAlgo.id)}>
+                    <b style={{ background: nextAlgo.color }}>{nextAlgo.code}</b>
+                    {nextAlgo.shortName} →
+                  </button>
+                </>
+              ) : (
+                <span className="allAlgosDone">恭喜！你已完成全部 10 個演算法的學習旅程。</span>
+              )}
+            </div>
+          );
+        })()}
 
         {activeInsight && (
           <section className="panel reportPanel">
@@ -761,6 +822,140 @@ export default function Home() {
           grid-template-columns: 1.05fr 1.25fr 0.9fr;
           gap: 18px;
           margin-bottom: 18px;
+        }
+
+        /* ── Learning path ── */
+        .learningPath {
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--surface);
+          padding: 14px 18px;
+          margin-bottom: 16px;
+          box-shadow: 0 8px 24px var(--shadow);
+        }
+        .learningPath h3 {
+          margin: 0 0 12px;
+          font-size: 0.98rem;
+          color: var(--muted-strong);
+        }
+        .pathRow {
+          display: flex;
+          align-items: flex-start;
+          gap: 0;
+          flex-wrap: wrap;
+        }
+        .pathGroup {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          flex: 1;
+          min-width: 180px;
+        }
+        .pathArrow {
+          font-size: 1.3rem;
+          color: var(--muted);
+          padding: 28px 6px 0;
+          flex-shrink: 0;
+        }
+        .pathLevel {
+          font-size: 0.74rem;
+          font-weight: 700;
+          border-radius: 6px;
+          padding: 4px 8px;
+          white-space: nowrap;
+          margin-top: 2px;
+          flex-shrink: 0;
+        }
+        .pathLevel.lv0 { background: #dcfce7; color: #16a34a; border: 1px solid #86efac; }
+        .pathLevel.lv1 { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+        .pathLevel.lv2 { background: #fae8ff; color: #7e22ce; border: 1px solid #d8b4fe; }
+        .pathAlgos {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .pathAlgoBtn {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          background: var(--surface-soft);
+          color: var(--muted-strong);
+          padding: 5px 9px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 0.82rem;
+          font-weight: 600;
+          transition: border-color 0.15s;
+        }
+        .pathAlgoBtn:hover { border-color: var(--accent); color: var(--accent); }
+        .pathAlgoBtn b {
+          width: 18px;
+          height: 18px;
+          display: grid;
+          place-items: center;
+          border-radius: 999px;
+          color: #fff;
+          font-size: 0.68rem;
+        }
+
+        /* ── Difficulty badge on cards ── */
+        .levelBadge {
+          display: block;
+          border-radius: 4px;
+          text-align: center;
+          padding: 2px 6px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          margin-bottom: 4px;
+          border: 1px solid transparent;
+        }
+        .lvBadge-入門 { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+        .lvBadge-中階 { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+        .lvBadge-進階 { background: #fae8ff; color: #7e22ce; border-color: #d8b4fe; }
+
+        /* ── Next algorithm bar ── */
+        .nextAlgoBar {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--surface);
+          padding: 12px 16px;
+          margin-bottom: 18px;
+          font-size: 0.9rem;
+          color: var(--muted);
+          flex-wrap: wrap;
+        }
+        .nextAlgoBar button {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          border: 0;
+          border-radius: 7px;
+          background: var(--accent);
+          color: #fff;
+          padding: 8px 14px;
+          cursor: pointer;
+          font: inherit;
+          font-weight: 700;
+          font-size: 0.88rem;
+        }
+        .nextAlgoBar button b {
+          width: 20px;
+          height: 20px;
+          display: grid;
+          place-items: center;
+          border-radius: 999px;
+          color: #fff;
+          font-size: 0.72rem;
+          border: 1px solid rgba(255,255,255,0.4);
+        }
+        .allAlgosDone {
+          color: var(--accent);
+          font-weight: 700;
         }
 
         /* ── Report & Guide panels ── */

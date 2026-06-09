@@ -91,6 +91,7 @@ class QuizItem(BaseModel):
     question: str
     options: List[str]
     correctIndex: int
+    explanation: str
 
 
 class Algorithm(BaseModel):
@@ -109,7 +110,7 @@ class Algorithm(BaseModel):
     code: str
     concept: str
     bestFor: str
-    quiz: QuizItem
+    quiz: List[QuizItem]
     # Study report insights (previously in frontend/lib/algorithmReport.js `reportInsights`)
     output: str
     core: str
@@ -136,7 +137,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="線性迴歸", category="監督式", task="迴歸", level="入門", color="#ef4444", code="LR",
         concept="用最佳直線描述特徵與連續數值之間的關係。",
         bestFor="房價預測、銷售額、趨勢估計",
-        quiz=QuizItem(question="線性迴歸最適合預測什麼？", options=["連續數值", "資料群中心", "圖像邊緣"], correctIndex=0),
+        quiz=[
+            QuizItem(question="線性迴歸最適合預測什麼？", options=["連續數值（如房價）", "資料群中心", "圖像邊緣"], correctIndex=0, explanation="線性迴歸的輸出是連續型數值。若目標是類別（如是/否），應改用邏輯迴歸。"),
+            QuizItem(question="線性迴歸用什麼損失函數衡量誤差？", options=["均方誤差 MSE", "Gini 不純度", "交叉熵 Cross-Entropy"], correctIndex=0, explanation="MSE 計算每個預測值與真實值差值的平方平均。RMSE 是 MSE 的根號，單位與目標值相同，更容易解釋誤差大小。"),
+            QuizItem(question="為什麼線性迴歸對離群值敏感？", options=["MSE 會平方放大大誤差的影響", "因為它使用對數轉換", "因為它需要整數輸入"], correctIndex=0, explanation="MSE 對誤差進行平方，使少數極端點對係數產生過大影響。改用 MAE（平均絕對誤差）可以降低離群值的衝擊。"),
+        ],
         output="連續數值",
         core="線性迴歸用一條直線、平面或高維超平面近似特徵與目標值的關係。訓練時會尋找一組係數，讓預測值與真實值的整體誤差最小。",
         workflow=["確認目標是連續數值", "檢查離群值與資料洩漏", "觀察特徵是否適合線性組合", "用 MAE、RMSE、R-squared 與殘差圖評估"],
@@ -160,7 +165,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="邏輯迴歸", category="監督式", task="分類", level="入門", color="#f97316", code="LG",
         concept="把線性分數轉成機率，常用於二元分類。",
         bestFor="垃圾郵件、是否違約、是否罹病",
-        quiz=QuizItem(question="邏輯迴歸輸出的核心意義是什麼？", options=["類別機率", "樹的深度", "主成分方向"], correctIndex=0),
+        quiz=[
+            QuizItem(question="邏輯迴歸輸出的核心意義是什麼？", options=["類別機率（0 到 1）", "樹的深度", "主成分方向"], correctIndex=0, explanation="邏輯迴歸透過 Sigmoid 函數將線性分數轉為 0~1 之間的機率，可解釋為屬於正類的信心程度。"),
+            QuizItem(question="類別嚴重不平衡時（如正例僅佔 5%），應優先看哪個指標？", options=["F1-score 或 PR-AUC", "只看準確率 Accuracy", "Silhouette Score"], correctIndex=0, explanation="Accuracy 在不平衡資料中會誤導（全猜多數類就有高準確率）。F1-score 同時衡量 Precision 和 Recall，更能反映真實性能。"),
+            QuizItem(question="邏輯迴歸的預設分類閾值是多少？", options=["0.5", "0.1", "1.0"], correctIndex=0, explanation="預設閾值 0.5 不一定符合業務需求。醫療診斷中漏診代價遠高於誤診，應降低閾值以提高 Recall（召回率）。"),
+        ],
         output="類別機率",
         core="邏輯斯迴歸先計算線性分數，再用 sigmoid 函數轉成 0 到 1 的機率，常用於二元分類與風險分數。",
         workflow=["確認目標是分類標籤", "處理類別不平衡", "標準化或編碼特徵", "依業務成本調整分類閾值"],
@@ -185,7 +194,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="決策樹", category="監督式", task="分類", level="入門", color="#eab308", code="DT",
         concept="用條件分支一步步切分資料，形成容易解釋的規則。",
         bestFor="規則清楚、需要解釋的決策問題",
-        quiz=QuizItem(question="決策樹最直觀的優勢是什麼？", options=["決策流程易解釋", "永遠不會過擬合", "不需要資料"], correctIndex=0),
+        quiz=[
+            QuizItem(question="決策樹最直觀的優勢是什麼？", options=["決策流程易解釋（if-else 規則）", "永遠不會過擬合", "不需要資料"], correctIndex=0, explanation="決策樹每個節點都是可解釋的 if-else 條件，非技術人員也能理解其決策邏輯，這是它在需要解釋性場景（如法規遵循）中的最大優勢。"),
+            QuizItem(question="決策樹在分裂節點時，通常用什麼衡量分裂品質？", options=["Gini 不純度或 Entropy", "RMSE", "Silhouette Score"], correctIndex=0, explanation="Gini 衡量節點的混雜程度（越低越純），Entropy 使用信息論計算不純度。兩者效果相近，但 Gini 計算較快，是 scikit-learn 的預設。"),
+            QuizItem(question="如何防止決策樹過擬合？", options=["限制最大深度 max_depth 或最小葉節點樣本數", "增加更多特徵", "移除所有葉節點"], correctIndex=0, explanation="樹越深越容易記住訓練資料中的雜訊。設定 max_depth 或 min_samples_leaf 是最直接的正則化手段，可強迫樹學習更通用的規則。"),
+        ],
         output="類別或數值",
         core="決策樹透過一連串 if-else 條件切分資料，每個節點都嘗試讓子節點更純，最後形成可解釋的規則。",
         workflow=["選擇可被切分的特徵", "用 Gini、entropy 或 MSE 衡量切分品質", "限制樹深與葉節點樣本數", "檢查規則是否符合領域知識"],
@@ -210,7 +223,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="隨機森林", category="集成", task="分類/迴歸", level="中階", color="#22c55e", code="RF",
         concept="組合多棵決策樹，用投票或平均提升穩定性。",
         bestFor="高維資料、穩健預測、特徵多的任務",
-        quiz=QuizItem(question="隨機森林如何整合分類結果？", options=["投票", "只選第一棵樹", "刪除分支"], correctIndex=0),
+        quiz=[
+            QuizItem(question="隨機森林如何整合多棵樹的分類結果？", options=["多數投票（最多樹同意的類別獲勝）", "只選第一棵樹", "刪掉表現最差的分支"], correctIndex=0, explanation="分類任務用多數投票，迴歸任務用平均值。組合多棵樹的判斷可以降低單棵樹的過擬合風險，提升整體穩定性。"),
+            QuizItem(question="隨機森林如何確保每棵樹不同？", options=["Bootstrap 抽樣 + 隨機選擇特徵子集", "每棵樹使用相同資料但不同超參數", "每棵樹只用一個特徵"], correctIndex=0, explanation="Bootstrap 從訓練集有放回地抽樣，加上每次分裂只考慮隨機特徵子集，確保樹間的多樣性。多樣性是集成學習能有效降低方差的關鍵。"),
+            QuizItem(question="隨機森林的特徵重要度可能有哪種偏差？", options=["偏向高基數（類別多）的特徵", "永遠公平反映每個特徵的貢獻", "只適用於迴歸任務"], correctIndex=0, explanation="高基數特徵有更多可能的分裂點，被選為最佳分裂的機會更高，導致重要度虛高。建議搭配 Permutation Importance 做比對驗證。"),
+        ],
         output="類別或數值",
         core="隨機森林把多棵決策樹組合起來，透過 bootstrap 抽樣與隨機特徵選擇降低單棵樹過擬合的風險。",
         workflow=["準備多個有效特徵", "設定樹的數量與深度限制", "使用袋外資料或驗證集評估", "檢視特徵重要度但避免過度解讀"],
@@ -234,7 +251,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="支援向量機", category="監督式", task="分類", level="中階", color="#3b82f6", code="SV",
         concept="尋找最大間隔的分隔邊界，也能處理非線性資料。",
         bestFor="中小型高維分類問題",
-        quiz=QuizItem(question="SVM 主要追求最大化什麼？", options=["類別間隔", "資料筆數", "群中心數量"], correctIndex=0),
+        quiz=[
+            QuizItem(question="SVM 主要追求最大化什麼？", options=["兩類別之間的間隔（Margin）", "訓練資料筆數", "群中心的數量"], correctIndex=0, explanation="SVM 找到讓兩類別間隔最大的超平面（決策邊界）。更大的間隔代表對未知資料有更高的容錯性，有助於提升泛化能力。"),
+            QuizItem(question="SVM 中 Kernel Trick 的主要作用是什麼？", options=["將資料映射到高維空間，讓非線性問題線性可分", "減少訓練資料的數量", "直接輸出類別機率"], correctIndex=0, explanation="Kernel Trick 讓 SVM 在高維空間運算，而無需真正計算高維座標（省去計算成本）。使用 RBF Kernel 可以處理複雜的非線性邊界。"),
+            QuizItem(question="為什麼使用 SVM 前通常需要標準化特徵？", options=["間隔計算基於距離，特徵尺度不同會讓大尺度特徵主導邊界", "SVM 只能接受 0 到 1 之間的輸入", "標準化可增加支持向量的數量"], correctIndex=0, explanation="SVM 用歐氏距離衡量間隔。若特徵 A 範圍是 0~1000、特徵 B 是 0~1，特徵 A 的影響力遠大於 B。StandardScaler 讓所有特徵的影響力均等。"),
+        ],
         output="類別或連續數值",
         core="支援向量機尋找能最大化類別間隔的邊界；搭配 kernel 後，可以在高維空間處理非線性分界。",
         workflow=["標準化特徵尺度", "選擇 linear、poly 或 RBF kernel", "調整 C 與 gamma", "用交叉驗證檢查泛化能力"],
@@ -258,7 +279,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="K近鄰", category="監督式", task="分類/迴歸", level="入門", color="#6366f1", code="KN",
         concept="找出最相近的 K 個樣本，再投票或平均。",
         bestFor="相似性推薦、資料量較小的分類",
-        quiz=QuizItem(question="KNN 預測時主要依賴什麼？", options=["鄰近樣本", "反向傳播", "隨機森林"], correctIndex=0),
+        quiz=[
+            QuizItem(question="KNN 預測時主要依賴什麼？", options=["距離最近的 K 個訓練樣本的標籤", "反向傳播梯度", "隨機森林的投票"], correctIndex=0, explanation="KNN 在預測時找出距離最近的 K 個樣本，再用投票（分類）或平均（迴歸）決定結果。它沒有顯式的訓練階段，所有計算在預測時才進行。"),
+            QuizItem(question="K 值設太小（如 K=1）容易造成什麼問題？", options=["過擬合（對雜訊樣本極度敏感）", "欠擬合", "訓練速度變慢"], correctIndex=0, explanation="K=1 時，預測完全由最近的單一樣本決定，任何雜訊點都會直接影響結果。K 越大預測越平滑，但可能忽略局部細節（欠擬合）。"),
+            QuizItem(question="KNN 在高維資料中為何效果下降？", options=["高維空間中所有點的距離趨於相等（維度詛咒）", "KNN 不支援多維輸入", "高維資料一定有資料洩漏"], correctIndex=0, explanation="隨維度增加，最近和最遠鄰居的距離差距趨近於零，「鄰近」失去區分能力，這就是「維度詛咒（Curse of Dimensionality）」。可先用 PCA 降維再套用 KNN。"),
+        ],
         output="類別或數值",
         core="K 最近鄰不建立明確參數模型，而是在預測時找出距離最近的 K 個樣本，再投票或平均。",
         workflow=["定義合理距離", "先標準化特徵", "用驗證集選擇 K 值", "檢查高維資料是否造成距離失效"],
@@ -281,7 +306,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="朴素貝葉斯", category="監督式", task="分類", level="入門", color="#a855f7", code="NB",
         concept="用貝葉斯定理估計類別機率，假設特徵條件獨立。",
         bestFor="文字分類、垃圾郵件過濾",
-        quiz=QuizItem(question="朴素貝葉斯常見假設是什麼？", options=["條件獨立", "完全線性", "無需類別"], correctIndex=0),
+        quiz=[
+            QuizItem(question="朴素貝葉斯的核心假設是什麼？", options=["給定類別後，各特徵彼此條件獨立", "特徵必須完全線性相關", "不需要類別標籤"], correctIndex=0, explanation="「朴素」一詞正是來自這個強假設。雖然現實中特徵很少真正獨立，但此假設大幅簡化計算，且模型在許多實務場景中依然表現良好。"),
+            QuizItem(question="朴素貝葉斯中「平滑（Smoothing）」的目的是什麼？", options=["防止訓練集未出現的詞彙導致機率為零", "讓模型決策邊界更平滑", "增加訓練樣本數量"], correctIndex=0, explanation="若某詞在訓練集的某類別中從未出現，其機率為 0，乘以任何數結果都是 0。Laplace 平滑（加 1）確保所有詞彙有非零機率，避免「零機率問題」。"),
+            QuizItem(question="即使特徵獨立假設不成立，朴素貝葉斯為何仍能表現不錯？", options=["分類只需比較後驗機率大小，不需要精確的機率值", "因為 Laplace 平滑補正了獨立假設", "因為獨立假設在文字資料中完全成立"], correctIndex=0, explanation="分類決策是選擇後驗機率最高的類別，只需比較相對大小。即使機率值因獨立假設而不精確，但只要大小排序正確，分類就會是正確的。"),
+        ],
         output="類別機率",
         core="樸素貝氏使用貝氏定理估計類別機率，並假設特徵在給定類別後彼此條件獨立，因此特別適合文字特徵。",
         workflow=["把文字轉成詞頻或 TF-IDF 特徵", "選擇 Multinomial、Bernoulli 或 Gaussian 版本", "加入平滑避免零機率", "用混淆矩陣檢查錯誤類別"],
@@ -305,7 +334,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="K-Means 聚類", category="非監督式", task="聚類", level="入門", color="#06b6d4", code="KM",
         concept="反覆分配資料到 K 個群，並更新每個群的中心。",
         bestFor="客戶分群、市場區隔、探索資料",
-        quiz=QuizItem(question="K-Means 執行前通常要指定什麼？", options=["K 值", "標籤答案", "樹深度"], correctIndex=0),
+        quiz=[
+            QuizItem(question="K-Means 執行前必須指定什麼？", options=["群數 K", "類別標籤（監督式資訊）", "決策樹的最大深度"], correctIndex=0, explanation="K-Means 是非監督式學習，不需要標籤，但需要事先決定群數 K。K 的選擇通常用 Elbow Method 或 Silhouette Score 協助判斷。"),
+            QuizItem(question="K-Means 如何更新每一輪的群中心？", options=["計算群內所有點的座標平均值（均值）", "隨機重新選一個現有資料點", "用距離加權移動"], correctIndex=0, explanation="每輪迭代將群中心移到其群內所有成員的幾何中心（均值），這也是演算法名稱「均值（Means）」的由來。重複直到中心不再移動為止。"),
+            QuizItem(question="K-Means 對離群值敏感的原因是什麼？", options=["均值易被極端值拉動，使群中心偏離真正的群核心", "離群值會讓 Silhouette Score 升高", "K-Means 會自動辨識並排除離群值"], correctIndex=0, explanation="群中心是均值，對極端點非常敏感。一個遠離群體的離群點會顯著拉動群中心位置，扭曲分群結果。K-Medoids 使用真實資料點作為中心，更能抵抗離群值。"),
+        ],
         output="群組標籤",
         core="K-Means 反覆把資料分到最近的群中心，再更新群中心位置，目標是降低群內點到中心的距離總和。",
         workflow=["先標準化數值特徵", "用 elbow 或 silhouette 協助選 K", "多次初始化降低局部最小值風險", "用業務語意解讀每個群"],
@@ -329,7 +362,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="主成分分析", category="非監督式", task="降維", level="中階", color="#8b5cf6", code="PC",
         concept="找出保留最多變異的方向，把高維資料壓縮到低維。",
         bestFor="資料視覺化、降維、去雜訊",
-        quiz=QuizItem(question="PCA 的主要目的通常是什麼？", options=["降維", "增加標籤", "產生決策樹"], correctIndex=0),
+        quiz=[
+            QuizItem(question="PCA 的主要目的通常是什麼？", options=["降低資料維度同時保留最多資訊", "增加資料的類別標籤", "產生決策樹的分裂規則"], correctIndex=0, explanation="PCA 將高維資料投影到少數幾個主成分，使資料在低維空間仍保留最多的原始變異。常用於視覺化（降到 2D/3D）或作為後續模型的前處理步驟。"),
+            QuizItem(question="主成分（Principal Component）代表什麼方向？", options=["資料變異最大的正交方向", "資料中最常見的特徵值方向", "隨機選取的投影方向"], correctIndex=0, explanation="PC1 是資料中變異最大的方向，PC2 是與 PC1 垂直（正交）且次大變異的方向。這些正交方向讓資料在低維空間仍具有最大區分度。"),
+            QuizItem(question="「解釋變異比（Explained Variance Ratio）」是什麼意思？", options=["每個主成分佔原始資料總變異的百分比", "每個特徵的線性相關程度", "資料壓縮前後的誤差比例"], correctIndex=0, explanation="若前兩個主成分的解釋變異比為 0.65 和 0.20，表示它們共同保留了 85% 的原始資訊。通常選到累積解釋變異達 80~95% 為止。"),
+        ],
         output="降維座標",
         core="PCA 找出資料變異最大的正交方向，將高維資料投影到少數主成分上，以保留主要資訊並降低維度。",
         workflow=["先標準化特徵", "檢查解釋變異比例", "選擇主成分數量", "用低維座標視覺化或作為後續模型輸入"],
@@ -353,7 +390,11 @@ ALGORITHMS: List[Algorithm] = [
         shortName="神經網路", category="深度學習", task="分類/生成", level="進階", color="#f97316", code="NN",
         concept="透過多層神經元學習複雜非線性映射。",
         bestFor="影像、語音、自然語言",
-        quiz=QuizItem(question="神經網路擅長處理哪類關係？", options=["複雜非線性", "只能直線", "固定群中心"], correctIndex=0),
+        quiz=[
+            QuizItem(question="神經網路擅長學習哪類關係？", options=["複雜的非線性模式（如影像、語音）", "只能學習線性關係", "固定群中心位置"], correctIndex=0, explanation="透過多層神經元的非線性激活函數（如 ReLU），神經網路可以學習任意複雜的非線性映射，這是它在影像辨識和自然語言處理中表現卓越的原因。"),
+            QuizItem(question="激活函數（Activation Function）的主要作用是什麼？", options=["引入非線性，讓網路能學習複雜模式", "加速矩陣乘法的計算速度", "決定輸入特徵的數量"], correctIndex=0, explanation="若沒有激活函數，多層神經網路等同於單層線性變換，無論多深都無法學習非線性特徵。ReLU（max(0,x)）是最常用的激活函數，計算快且不易梯度消失。"),
+            QuizItem(question="訓練時，若訓練損失下降但驗證損失上升，代表什麼？", options=["模型開始過擬合訓練資料", "模型已完美收斂，可以停止訓練", "需要繼續增加訓練輪數"], correctIndex=0, explanation="這是最經典的過擬合信號：模型記住了訓練資料的雜訊，在新資料上表現惡化。解決方法包括 Early Stopping（提早停止）、Dropout 或 L2 正則化。"),
+        ],
         output="類別、數值或生成結果",
         core="類神經網路由多層神經元組成，透過權重與非線性 activation 學習複雜模式，是深度學習模型的基礎。",
         workflow=["準備大量且一致的資料", "設計層數、神經元與 activation", "設定 loss、optimizer 與 batch size", "用驗證集監控過擬合"],
