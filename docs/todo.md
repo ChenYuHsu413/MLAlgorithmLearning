@@ -138,7 +138,31 @@ Generated: 2026-06-09
 
 ---
 
+---
+
+## Phase 7 — 實驗室品質提升（Code Review 後）
+
+Phase 6 bug fixes 全部完成。Code Review 同時發現以下功能層面的改進點，可視優先度安排：
+
+- [ ] **DecisionTreeLab：加入客戶端決策邊界網格**
+  - 現況：只有散佈圖原始點，看不到決策邊界
+  - 改進：加一層 26×26 客戶端網格著色（類似 KNNLab），不需額外 API
+
+- [ ] **RandomForestLab：特徵重要性標明所使用的模型**
+  - 現況：特徵重要性長條圖沒說明是哪個 n 值的模型
+  - 改進：標籤顯示「特徵重要性（n=200 模型）」或改為跟隨 n_estimators 滑桿
+
+- [ ] **PCALab：n_components 滑桿效果更明顯**
+  - 現況：滑桿只改 EVR 長條圖的高亮顏色，感知不強
+  - 改進：加入選定主成分的累積解釋變異量（Cumulative EVR）數字
+
+- [ ] **KMeansLab：加入 mount 自動載入**
+  - 現況：進入頁面後需手動按「重新分群」才有資料
+  - 改進：元件掛載時自動呼叫一次 API
+
+---
+
 ## Notes
 
-- **Priority order:** Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6
+- **Priority order:** Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7
 - Phase 6 bug fixes ranked: 🔴 = 影響展示正確性（優先）、🟡 = 影響使用體驗、🟢 = 效能/維護性

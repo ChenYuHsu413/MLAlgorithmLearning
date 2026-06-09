@@ -380,6 +380,178 @@ git push
 
 ---
 
+## Session 16 — 2026-06-09｜Phase 6 Bug Fixes（Code Review 6 項修復）
+
+### 目標
+修復 Phase 5 Code Review 確認的所有 6 項問題。
+
+### 後端修改（`backend/main.py`）
+```python
+# 1. recurse() 葉節點偵測錯誤
+# 修前：if node == _tree.TREE_LEAF
+# 修後：if tree.children_left[node] == _tree.TREE_LEAF
+# 原因：node 永遠是 ≥0 的整數；TREE_LEAF = -1 永遠不相等，導致葉節點全被誤判為內部節點
+
+# 2. simulate_random_forest 冗餘第 12 個模型
+# 修前：額外訓練一個 n=200 的模型只為了提取 feature_importances_
+# 修後：直接從迴圈最後一個 m 提取（curve[-1] 已是 n=200 的結果）
+```
+
+### 前端修改
+```
+frontend/components/DecisionTreeLab.jsx
+  - flattenTree 改用後序賦值算法（MIN_GAP = 42px = 2×NODE_R + 6）
+    保證相鄰節點最小間距 ≥ 2 倍半徑，深度 8 不再重疊
+  - tooltip 移至 SVG 最頂層（最後渲染），修復被後繪子節點遮蓋
+
+frontend/components/NeuralNetworkLab.jsx
+  - 預設按鈕加 disabled={loading}，修復快速點擊競態條件
+
+SVMLab.jsx / RandomForestLab.jsx / PCALab.jsx / NeuralNetworkLab.jsx / DecisionTreeLab.jsx
+  - 補齊 error state、catch block、if (!res.ok) throw Error 與錯誤訊息 banner
+```
+
+### Git 提交
+```bash
+git add backend/main.py \
+        frontend/components/DecisionTreeLab.jsx \
+        frontend/components/NeuralNetworkLab.jsx \
+        frontend/components/SVMLab.jsx \
+        frontend/components/RandomForestLab.jsx \
+        frontend/components/PCALab.jsx \
+        docs/todo.md
+git commit -m "fix: Phase 6 — all 6 bug fixes from code review"
+```
+
+---
+
+## Session 17 — 2026-06-09｜Phase 5-2/5-3 實驗室 HTTP 404 修復（API_BASE_URL）
+
+### 問題
+決策樹、隨機森林、PCA、神經網路打開後顯示 HTTP 404。
+Phase 5-1 的實驗室用 styled-jsx，fetch 路徑已寫成 `http://localhost:8000/api/...`。
+Phase 5-2/5-3 的實驗室（SVM/RF/PCA/DT/NN）fetch 只寫 `/api/simulate-*`，被當成 Next.js 路由，找不到。
+
+### 修復
+在 5 個受影響的實驗室元件頂部加入：
+```js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+```
+所有 fetch 呼叫改為 `` `${API_BASE_URL}/api/simulate-*` ``。
+
+受影響元件：
+- `frontend/components/SVMLab.jsx`
+- `frontend/components/RandomForestLab.jsx`
+- `frontend/components/PCALab.jsx`
+- `frontend/components/DecisionTreeLab.jsx`
+- `frontend/components/NeuralNetworkLab.jsx`
+
+### Git 提交
+```bash
+git add frontend/components/SVMLab.jsx \
+        frontend/components/RandomForestLab.jsx \
+        frontend/components/PCALab.jsx \
+        frontend/components/DecisionTreeLab.jsx \
+        frontend/components/NeuralNetworkLab.jsx
+git commit -m "fix: add API_BASE_URL to all Phase 5-2/5-3 labs"
+```
+
+---
+
+## Session 18 — 2026-06-09｜Tailwind CSS v4 安裝與設定
+
+### 問題
+Phase 5-2/5-3 的實驗室使用 Tailwind utility class（`bg-gray-800`、`rounded-xl` 等），但 Tailwind 未安裝，所有樣式無效，版面坍塌成全文字佈局。
+
+### 安裝過程
+
+`package.json` 有 `overrides: {postcss: "8.5.10"}`，直接安裝 `postcss` 會衝突（EOVERRIDE）：
+```bash
+# 先跳過 postcss 本身
+npm install -D tailwindcss autoprefixer
+# 再裝 Tailwind v4 的 PostCSS 插件
+npm install -D @tailwindcss/postcss
+```
+
+### 新增/修改檔案
+```
+frontend/postcss.config.js        # 新增：使用 @tailwindcss/postcss（v4 插件名稱改變）
+frontend/styles/globals.css       # 新增：@import "tailwindcss"（v4 語法，不用 @tailwind base）
+frontend/pages/_app.js            # 新增：import globals.css，使 Tailwind 全域生效
+```
+
+`postcss.config.js`：
+```js
+module.exports = {
+  plugins: {
+    '@tailwindcss/postcss': {},
+    autoprefixer: {},
+  },
+};
+```
+
+`styles/globals.css`：
+```css
+@import "tailwindcss";
+```
+
+`pages/_app.js`：
+```js
+import '../styles/globals.css';
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}
+```
+
+> Tailwind v4 不需要 `tailwind.config.js`（自動掃描內容），`@tailwind` 指令也改成 `@import`。
+
+### Git 提交
+```bash
+git add frontend/postcss.config.js \
+        frontend/styles/globals.css \
+        frontend/pages/_app.js \
+        frontend/package.json \
+        frontend/package-lock.json
+git commit -m "fix: add Tailwind CSS v4 so Phase 5-2/5-3 labs render correctly"
+```
+
+---
+
+## Session 19 — 2026-06-09｜實驗室最大寬度限制（960px）
+
+### 問題
+Tailwind 生效後，Phase 5-2/5-3 的 SVG 圖表仍佔滿整個內容欄（1400px+ 寬螢幕）。
+`appShell` CSS 的主欄是 `minmax(0, 1fr)`，無上限；實驗室本身沒有 max-width 約束。
+Phase 5-1 的實驗室（styled-jsx）已有 `max-width: 860px`；Phase 5-2/5-3 缺漏。
+
+### 修復（`frontend/pages/index.js`）
+用 `.tailwindLab` div 包住 5 個 Tailwind 實驗室：
+```jsx
+<div className="tailwindLab">
+  {active?.id === 4 && <SVMLab />}
+  {active?.id === 3 && <RandomForestLab />}
+  {active?.id === 8 && <PCALab />}
+  {active?.id === 2 && <DecisionTreeLab />}
+  {active?.id === 9 && <NeuralNetworkLab />}
+</div>
+```
+
+在同一元件的 styled-jsx 加入：
+```css
+.tailwindLab {
+  max-width: 960px;
+  padding: 0 0 24px;
+}
+```
+
+### Git 提交
+```bash
+git add frontend/pages/index.js
+git commit -m "fix: constrain Tailwind lab width to 960px max"
+```
+
+---
+
 ## Session 14 — 2026-06-09｜Phase 5-2 SVM + 隨機森林 + PCA 實驗室
 
 ### 後端新增端點

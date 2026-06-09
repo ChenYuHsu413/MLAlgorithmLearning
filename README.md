@@ -48,7 +48,10 @@
 │   └── requirements.txt         # Python 依賴
 ├── frontend/
 │   ├── package.json
+│   ├── postcss.config.js        # Tailwind CSS v4 PostCSS 設定
 │   ├── .env.example
+│   ├── styles/
+│   │   └── globals.css          # Tailwind v4 全域引入
 │   ├── components/
 │   │   ├── AIChatbot.tsx            # AI 助教聊天室（WebSocket 串流）
 │   │   ├── AlgorithmRelationshipMap.jsx  # 演算法關係 SVG 圖（可點擊節點）
@@ -73,6 +76,7 @@
 │   │   ├── algorithmData.js     # 圖表類型、圖例、公式、程式碼範例
 │   │   └── algorithmReport.js   # 建模流程指引
 │   └── pages/
+│       ├── _app.js              # Next.js App 元件（引入 Tailwind 全域 CSS）
 │       ├── index.js             # 主頁面
 │       └── algorithms/
 │           └── [id].js          # 個別演算法頁面
@@ -108,7 +112,7 @@
 
 ## 使用技術
 
-- **Frontend**：Next.js 15、React 18、styled-jsx
+- **Frontend**：Next.js 15、React 18、styled-jsx、Tailwind CSS v4
 - **Backend**：FastAPI、Uvicorn、Gunicorn、Pydantic
 - **ML**：scikit-learn（LinearRegression, LogisticRegression, DecisionTree, RandomForest, SVC, KNN, GaussianNB, KMeans, PCA, MLPClassifier）、NumPy
 - **AI 助教**：Google Gemini / Groq Llama 3 / OpenRouter / OpenAI GPT-4o-mini（自動故障轉移）
