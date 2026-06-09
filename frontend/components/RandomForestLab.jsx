@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const W = 480, H = 260, PAD_L = 48, PAD_R = 20, PAD_T = 20, PAD_B = 40;
 
 export default function RandomForestLab() {
@@ -9,7 +11,7 @@ export default function RandomForestLab() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/simulate-random-forest', { method: 'POST' })
+    fetch(`${API_BASE_URL}/api/simulate-random-forest`, { method: 'POST' })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setResult(d); setSelectedIdx(d.curve.length - 1); })
       .catch(e => setError(e.message))

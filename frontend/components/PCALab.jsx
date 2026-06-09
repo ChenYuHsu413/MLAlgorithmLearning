@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const W = 400, H = 340, PAD = 36;
 const BAR_W = 480, BAR_H = 200, BAR_PAD_L = 48, BAR_PAD_R = 16, BAR_PAD_T = 20, BAR_PAD_B = 36;
 
@@ -14,7 +16,7 @@ export default function PCALab() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch('/api/simulate-pca', { method: 'POST' })
+    fetch(`${API_BASE_URL}/api/simulate-pca`, { method: 'POST' })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => setResult(d))
       .catch(e => setError(e.message))

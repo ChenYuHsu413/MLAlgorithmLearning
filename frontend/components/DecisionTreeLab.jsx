@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const W = 420, H = 360, PAD = 36;
 const NODE_R = 18, V_GAP = 64, MIN_GAP = NODE_R * 2 + 6; // guaranteed min center-to-center
 
@@ -66,7 +68,7 @@ export default function DecisionTreeLab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/simulate-decision-tree', {
+      const res = await fetch(`${API_BASE_URL}/api/simulate-decision-tree`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_depth: d }),

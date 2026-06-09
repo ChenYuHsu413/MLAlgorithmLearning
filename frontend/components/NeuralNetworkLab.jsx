@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const SCATTER_W = 380, SCATTER_H = 320, PAD = 32;
 const NN_W = 420, NN_H = 320;
 const MAX_NEURONS_DRAWN = 8; // cap per layer for visual clarity
@@ -50,7 +52,7 @@ export default function NeuralNetworkLab() {
     setError(null);
     try {
       const { sizes, activation } = PRESETS[p];
-      const res = await fetch('/api/simulate-neural-network', {
+      const res = await fetch(`${API_BASE_URL}/api/simulate-neural-network`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hidden_layer_sizes: sizes, activation }),

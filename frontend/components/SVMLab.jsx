@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const W = 480, H = 380, PAD = 36;
 
 function toSVG(v, min, max, px0, px1) {
@@ -30,7 +32,7 @@ export default function SVMLab() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/simulate-svm', {
+      const res = await fetch(`${API_BASE_URL}/api/simulate-svm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ C: cVal }),
