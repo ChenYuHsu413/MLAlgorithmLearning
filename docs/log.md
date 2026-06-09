@@ -3,6 +3,14 @@
 ## 📌 專案 Git 提交歷史紀錄 (Commit History)
 以下是本專案截至目前的完整 Git 提交歷史，作為開發軌跡參考：
 ```text
+a68b939 fix: square chart, cap lab width, yellow outliers for visibility
+0732472 fix: shrink chart height and make outliers more visible
+14f2e68 feat: redesign linear regression lab as a simulation experiment
+1c56021 refactor: replace table inputs with sliders in LinearRegressionLab
+faa6043 feat: add real Python linear regression lab with interactive input
+4d76ead feat: add Render cold start UX — spinner + warming-up screen with auto-retry
+e6dc1d9 feat: Phase 1 & 2 — cleanup and educational improvements
+98b2f7e docs: update log.md and 工作報告.md for session 7
 4d8fcb2 docs: update log.md and 工作報告.md to include quiz answer locking details
 e0d7827 fix: ignore quiz answer selections once correct answer is chosen
 bf57fb0 docs: add log.md, 工作報告.md and update README.md with AI assistant mechanism and failover architecture
@@ -29,6 +37,84 @@ b97be9c Initial ML algorithm learning app
 ---
 
 本文件紀錄了在此專案的開發與優化過程中，所執行的所有 Git 與系統指令。
+
+---
+
+## Session 8 — 2026-06-09｜教育功能大幅擴充 + 線性迴歸互動實驗室
+
+### Phase 1：無用檔案清理
+```bash
+git rm sources/interactive_ml_interactive.html
+git rm backend-server.err.log backend-server.log frontend-server.err.log frontend-server.log
+git add .gitignore
+git commit -m "feat: Phase 1 & 2 — cleanup and educational improvements"
+git push
+```
+
+### Phase 2：教育功能改善
+- 小測驗由 1 題擴充為每演算法 3 題（難度由易到難）
+- 每題加入正確/錯誤說明（explanation）
+- 新增進度圓點（答對=綠、答錯=紅）、題目自由導航
+- VisualPanel 加入圖表圖例（chartLegend）與數學公式框（mathFormulas）
+- 新增推薦學習路徑（入門→中階→進階）、難度徽章、下一演算法按鈕
+- 前端儲存格式從 `ml-quiz` 升版為 `ml-quiz-v2`（多題格式）
+
+### Render 冷啟動 UX
+```bash
+# 修改 frontend/pages/index.js
+# - 新增 loading state，初始為 true
+# - 新增 retryTimerRef 自動重試每 10 秒
+# - loading + 無資料 → 顯示旋轉動畫「平台啟動中」
+# - fetch 失敗 → 顯示「後端服務喚醒中，約需 30~60 秒」+ 立即重試按鈕
+git add frontend/pages/index.js docs/todo.md
+git commit -m "feat: add Render cold start UX — spinner + warming-up screen with auto-retry"
+git push
+```
+
+### 線性迴歸互動實驗室（第一版 — 滑桿輸入資料點）
+```bash
+# backend/requirements.txt 新增 scikit-learn, numpy
+# backend/main.py 新增 POST /api/run-linear-regression
+# frontend/components/LinearRegressionLab.jsx 新建
+# frontend/pages/index.js import LinearRegressionLab，於 active.id===0 顯示
+git add backend/main.py backend/requirements.txt frontend/components/LinearRegressionLab.jsx frontend/pages/index.js
+git commit -m "feat: add real Python linear regression lab with interactive input"
+git push
+```
+
+### 重構：改為模擬實驗室（第二版）
+```bash
+# 使用者回饋：希望不是手動輸入資料點，而是透過參數生成模擬資料
+# backend/main.py 新增 POST /api/simulate-linear-regression
+#   - 接收 n, a, b, var 四個參數
+#   - 生成 x ~ Uniform(-100, 100)，y = ax + b + N(0, sqrt(var))
+#   - 計算迴歸、殘差、RMSE，回傳 top-10 離群點 indices
+# frontend/components/LinearRegressionLab.jsx 全面重寫
+#   - 4 個參數滑桿（n, a, b, σ²）+ 即時公式預覽
+#   - SVG 散佈圖：灰點資料、藍虛線真實線、紅實線迴歸線、橘色離群點
+#   - 統計面板：擬合值 vs 真實值、R²、RMSE
+#   - Top-10 離群點排名表
+git add backend/main.py frontend/components/LinearRegressionLab.jsx
+git commit -m "feat: redesign linear regression lab as a simulation experiment"
+git push
+```
+
+### UI 修正：縮小圖表 & 離群點可見度
+```bash
+# 使用者回饋 1：圖表太大遮住輸入欄
+# → SVG maxHeight: 300px
+# → 離群點 r: 7→10，加外光暈（r=15，18% opacity）
+# → 殘差垂線改為實線、加粗，繪製順序移到圓點之前
+# → 數字 1-10 印在圓點中央
+git commit -m "fix: shrink chart height and make outliers more visible"
+
+# 使用者回饋 2：仍然遮住輸入；圖表改為正方形；離群點顏色更換
+# → lrLab max-width: 780px，grid: 300px 420px（固定）
+# → SVG viewBox 540×360 → 420×420（正方形）
+# → 離群點顏色 orange → bright yellow (#facc15)，深色邊框
+git commit -m "fix: square chart, cap lab width, yellow outliers for visibility"
+git push
+```
 
 ## 1. 系統診斷與除錯指令
 用於檢查環境變數與埠口佔用狀況：

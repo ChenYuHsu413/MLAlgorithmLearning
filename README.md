@@ -8,40 +8,78 @@
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=222222)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?logo=python&logoColor=white)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-F7931E?logo=scikitlearn&logoColor=white)
 ![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=111111)
 
-互動式機器學習演算法學習網站。專案使用 FastAPI 提供十大機器學習演算法資料 API，前端使用 Next.js 製作互動式學習平台，包含搜尋、分類篩選、視覺化卡片、小測驗、程式碼範例與比較表，以及基於 WebSocket 逐字串流的 AI 機器學習助教聊天機器人。
+互動式機器學習演算法學習網站。透過視覺化示意、互動實驗與實作範例，快速理解十大機器學習演算法的核心概念、工作原理與實際應用。
+
+## 功能特色
+
+- **十大演算法學習卡片**：搜尋、分類篩選（監督式、非監督式、集成、深度學習）
+- **互動式視覺化**：SVG 動畫（每個演算法 5 幀），含圖例說明與核心數學公式
+- **小測驗系統**：每個演算法 3 題（易→中→難），附解題說明，進度存入 localStorage
+- **程式碼實作範例**：10 個演算法的 scikit-learn / TensorFlow 程式碼
+- **推薦學習路徑**：入門 → 中階 → 進階排序導引
+- **進度追蹤面板**：顯示 N/10 演算法測驗完成狀況
+- **AI 機器學習助教**：WebSocket 逐字串流，支援 Gemini / Groq / OpenRouter / OpenAI 自動切換
+- **線性迴歸模擬實驗室**：調整斜率、截距、噪聲參數，Python 即時計算並繪製迴歸圖，標示 Top-10 離群點
+- **Render 冷啟動 UX**：後端暖機時顯示友善提示，自動重試，不白畫面
 
 ## 專案結構
 
 ```text
 .
 ├── backend/
-│   ├── main.py
-│   └── requirements.txt
+│   ├── main.py                  # FastAPI 主程式（API + WebSocket + ML 計算）
+│   └── requirements.txt         # Python 依賴
 ├── frontend/
 │   ├── package.json
-│   ├── package-lock.json
 │   ├── .env.example
 │   ├── components/
-│   │   └── AIChatbot.tsx
+│   │   ├── AIChatbot.tsx        # AI 助教聊天室（WebSocket 串流）
+│   │   ├── CodePanel.jsx        # 程式碼實作範例面板
+│   │   ├── DetailModal.jsx      # 演算法完整說明 Modal
+│   │   ├── HeroIllustration.jsx # Hero 區塊插圖
+│   │   ├── LinearRegressionLab.jsx  # 線性迴歸模擬實驗室
+│   │   ├── MiniChart.jsx        # SVG 動畫圖表元件（10 種演算法）
+│   │   ├── QuizPanel.jsx        # 小測驗面板（3 題制）
+│   │   └── VisualPanel.jsx      # 互動視覺化面板（圖例 + 公式）
+│   ├── lib/
+│   │   ├── algorithmData.js     # 圖表類型、圖例、公式、程式碼範例
+│   │   └── algorithmReport.js   # 建模流程指引
 │   └── pages/
-│       ├── index.js
+│       ├── index.js             # 主頁面
 │       └── algorithms/
-│           └── [id].js
+│           └── [id].js          # 個別演算法頁面
+├── docs/
+│   ├── log.md                   # 開發指令與 Git 紀錄
+│   ├── todo.md                  # 待辦清單
+│   └── 工作報告.md               # 各階段工作報告
 ├── sources/
-│   └── interactive_ml_interactive.html
+│   └── demo_screenshot.png
 ├── render.yaml
 └── README.md
 ```
 
+## 後端 API
+
+| 端點 | 方法 | 說明 |
+| :--- | :--- | :--- |
+| `/api/algorithms` | GET | 取得所有 10 個演算法的完整資料 |
+| `/api/algorithms/{id}` | GET | 取得單一演算法詳細資料 |
+| `/api/run-linear-regression` | POST | 對使用者提供的 (x, y) 點組執行線性迴歸 |
+| `/api/simulate-linear-regression` | POST | 依 n, a, b, σ² 參數生成模擬資料並執行迴歸，回傳離群點 |
+| `/ws/ai-chat` | WebSocket | AI 助教即時串流問答 |
+
 ## 使用技術
 
-- Frontend: Next.js 15, React 18
-- Backend: FastAPI, Uvicorn, Pydantic, OpenAI API
-- Real-time Communication: HTML5 WebSocket API
-- Deployment: Render
-- Version Control: Git, GitHub
+- **Frontend**：Next.js 15、React 18、styled-jsx
+- **Backend**：FastAPI、Uvicorn、Gunicorn、Pydantic
+- **ML**：scikit-learn（LinearRegression）、NumPy
+- **AI 助教**：Google Gemini / Groq Llama 3 / OpenRouter / OpenAI GPT-4o-mini（自動故障轉移）
+- **即時通訊**：HTML5 WebSocket API
+- **部署**：Render（免費方案，前後端各一個 Web Service）
+- **版本控制**：Git、GitHub
 
 ## 本機執行
 
@@ -56,11 +94,6 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 API 會在 `http://localhost:8000` 啟動。
-
-可測試的 API：
-
-- `GET /api/algorithms`
-- `GET /api/algorithms/{id}`
 
 ### 2. 啟動前端
 
@@ -78,115 +111,63 @@ npm run dev
 NEXT_PUBLIC_API_BASE_URL=https://your-api-domain.example.com
 ```
 
-### 3. AI 助教實作機制與金鑰管理
+### 3. AI 助教金鑰設定
 
-本平台的 **AI 機器學習助教** 是一個基於 WebSocket 的即時問答系統，設計了高度穩健的「多核心自動故障轉移（Failover）」機制與「防禦性變數清洗」，以確保專案在展示與日常使用時永不斷線。
+在 `backend/.env` 填入以下金鑰（至少一個，系統自動切換）：
 
-#### 💡 AI 助教的實作與切換機制
-* **實時 WebSocket 通訊**：前後端透過 WebSocket 建立長連線，後端調用大模型 API 取得 `stream` 數據，並將 Token 即時以逐字串流（Typewriter Stream）回傳給前端，達到無延遲的回覆體驗。
-* **多核心 API 故障轉移鏈 (Failover)**：
-  當學生發送問題時，後端會以**鏈式順序**自動偵測並嘗試連接以下配置的金鑰：
-  $$\text{Gemini 3.5 Flash} \longrightarrow \text{Groq Llama 3} \longrightarrow \text{OpenRouter Free} \longrightarrow \text{OpenAI GPT-4o-mini}$$
-  如果鏈條上的某一個 API 連線失敗（如 429 額度耗盡、401 認證錯誤、404 模型停用），系統會自動向網頁端發送提示：`*[系統提示]* {API} 呼叫失敗，正在自動切換備用方案...`，並**立即調用下一個可用 API**，無縫繼續回答問題。
-* **終極保險 - 模擬演示模式 (Mock Mode)**：若所有的 API 皆嘗試失敗，或您未設定任何 API Key，系統會自動無縫降級至模擬助教模式。在此模式下，對話框仍可正常發送消息，當提問「過擬合」、「資料洩漏」或「建模流程」等主題時，助教會以模擬串流的打字機效果逐步輸出詳細的思考引導，以便本機展示和排錯。
-
-#### 🔑 金鑰環境變數配置 (`backend/.env` 或 Render 設定)
-請在 `backend` 目錄下建立 `.env` 檔案，配置您的金鑰項目（系統會自動清洗金鑰字串，過濾多餘引號或前後空格）：
 ```env
-# 推薦的免費金鑰（請至 Google AI Studio 申請，預設 gemini-3.5-flash）
-GEMINI_API_KEY=您的_Gemini_API_Key
-
-# 備用免費金鑰 A（推論極速，請至 Groq Console 申請，預設 llama3-8b-8192）
-GROQ_API_KEY=您的_Groq_API_Key
-
-# 備用免費金鑰 B（請至 OpenRouter 申請）
-# 系統預設呼叫 `openrouter/free` 動態免費大模型路由
-# ⚠️ 注意：由於使用免費額度，此通道在尖峰時段可能會有延遲或速率限制
-OPENROUTER_API_KEY=您的_OpenRouter_API_Key
-
-# 備用付費金鑰（請至 OpenAI 申請，GPT-4o-mini）
-OPENAI_API_KEY=您的_OpenAI_API_Key
+GEMINI_API_KEY=你的_Gemini_API_Key       # 主力（Google AI Studio 免費）
+GROQ_API_KEY=你的_Groq_API_Key           # 備援 A（Groq Console 免費）
+OPENROUTER_API_KEY=你的_OpenRouter_Key   # 備援 B（OpenRouter 免費額度）
+OPENAI_API_KEY=你的_OpenAI_API_Key       # 備援 C（付費）
 ```
+
+若所有金鑰皆未設定，系統自動降級為模擬教學模式（Mock Mode），展示不中斷。
 
 ---
 
-## 📈 開發紀錄與工作報告
+## Render 部署
 
-在本次開發優化過程中，我們針對 API 故障、金鑰格式防錯、多核心備援等進行了深入的架構改造。詳細日誌與技術文件請參考：
-* 📄 **[開發指令與 Git 紀錄](docs/log.md)**
-* 📄 **[故障診斷與架構優化工作報告](docs/工作報告.md)**
-
-
-## Render 部署設定
-
-這個專案是 monorepo，`backend` 和 `frontend` 需要在 Render 建成兩個 Web Service。
+此專案為 monorepo，需在 Render 建立兩個 Web Service。
 
 ### 後端 Web Service
 
-- Service Type: `Web Service`
 - Runtime: `Python`
 - Root Directory: `backend`
-- Build Command:
-
-```bash
-pip install -r requirements.txt
-```
-
-- Start Command:
-
-```bash
-gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
-```
-
-- Environment Variables:
-
-```bash
-OPENAI_API_KEY=your-openai-api-key-here
-```
-
-Render 的 Web Service 必須綁定 `0.0.0.0`，並建議使用 Render 提供的 `$PORT`。後端使用 Gunicorn 啟動，並透過 Uvicorn worker 執行 FastAPI。
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT`
+- Environment Variables: `GEMINI_API_KEY`、`GROQ_API_KEY` 等（依需求設定）
 
 ### 前端 Web Service
 
-- Service Type: `Web Service`
 - Runtime: `Node`
 - Root Directory: `frontend`
-- Build Command:
-
-```bash
-npm install && npm run build
-```
-
-- Start Command:
-
-```bash
-npm start
-```
-
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
 - Environment Variables:
 
 ```bash
-NEXT_PUBLIC_API_BASE_URL=https://your-backend-service.onrender.com
-NEXT_PUBLIC_WS_URL=wss://your-backend-service.onrender.com/ws/ai-chat
+NEXT_PUBLIC_API_BASE_URL=https://your-backend.onrender.com
+NEXT_PUBLIC_WS_URL=wss://your-backend.onrender.com/ws/ai-chat
 ```
-
-`NEXT_PUBLIC_API_BASE_URL` 必須設定成 Render 後端服務的正式網址。`NEXT_PUBLIC_WS_URL` 為 WebSocket 的連線網址（請使用 `wss://` 安全協定）。Next.js 的 `NEXT_PUBLIC_` 變數會在 build 時寫入前端 bundle，所以部署前端前要先設定好這個值。
 
 ### 建議部署順序
 
-1. 先部署後端 Web Service。
-2. 後端部署完成後，複製後端的 Render URL，例如 `https://ml-algorithm-api.onrender.com`。
-3. 建立前端 Web Service。
-4. 在前端 Environment Variables 設定 `NEXT_PUBLIC_API_BASE_URL`。
-5. 部署前端。
-6. 前端部署完成後，把 README 開頭的 Demo Link 換成前端 Render URL。
+1. 先部署後端，複製後端 URL
+2. 建立前端 Web Service，填入 `NEXT_PUBLIC_API_BASE_URL` 與 `NEXT_PUBLIC_WS_URL`
+3. 部署前端
 
-### 使用 render.yaml
+> **冷啟動說明**：Render 免費方案後端閒置 15 分鐘後暫停。首次訪問時前端會顯示「後端服務喚醒中，約需 30~60 秒」，並每 10 秒自動重試，無需手動重新整理。
 
-此專案已提供 `render.yaml`。你可以在 Render 使用 Blueprint 建立服務，再到前端服務補上 `NEXT_PUBLIC_API_BASE_URL`。
+---
+
+## 開發紀錄
+
+- 📄 [開發指令與 Git 紀錄](docs/log.md)
+- 📄 [各階段工作報告](docs/工作報告.md)
+- 📄 [待辦清單](docs/todo.md)
 
 ## GitHub 注意事項
 
-- 不要上傳 `node_modules`、`.next`、Python 虛擬環境、`__pycache__` 或本機 log。
-- 建議保留 `frontend/package-lock.json`，讓部署環境安裝到一致版本。
-- `sources/interactive_ml_interactive.html` 是參考素材；正式前端已改成 React/Next.js 實作。
+- 不要上傳 `node_modules`、`.next`、Python 虛擬環境、`__pycache__` 或本機 log
+- 保留 `frontend/package-lock.json` 確保部署環境版本一致
