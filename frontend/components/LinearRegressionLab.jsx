@@ -35,23 +35,21 @@ function SliderRow({ label, sub, value, min, max, step, onChange, color }) {
         <span className="paramLabel">{label}</span>
         <span className="paramSub">{sub}</span>
       </div>
-      <div className="paramControl">
-        <input
-          type="range" min={min} max={max} step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          style={{ accentColor: color }}
-        />
-        <span className="paramVal" style={{ color }}>{value}</span>
-      </div>
+      <input
+        className="paramSlider"
+        type="range" min={min} max={max} step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        style={{ accentColor: color }}
+      />
+      <span className="paramVal" style={{ color }}>{value}</span>
       <style jsx>{`
-        .paramRow { display: grid; grid-template-columns: 140px 1fr; gap: 10px; align-items: center; }
+        .paramRow { display: grid; grid-template-columns: 140px 1fr 56px; gap: 10px; align-items: center; }
         .paramMeta { display: flex; flex-direction: column; }
         .paramLabel { font-size: 0.88rem; font-weight: 700; color: var(--text); }
         .paramSub { font-size: 0.72rem; color: var(--muted); margin-top: 1px; }
-        .paramControl { display: flex; align-items: center; gap: 10px; }
-        .paramControl input[type=range] { flex: 1; cursor: pointer; height: 4px; }
-        .paramVal { font-size: 0.95rem; font-weight: 800; min-width: 44px; text-align: right; font-family: 'Consolas', monospace; }
+        .paramSlider { width: 100%; cursor: pointer; height: 4px; min-width: 0; }
+        .paramVal { font-size: 0.95rem; font-weight: 800; text-align: right; font-family: 'Consolas', monospace; white-space: nowrap; }
       `}</style>
     </div>
   );
@@ -303,14 +301,14 @@ export default function LinearRegressionLab() {
           border: 1px solid var(--line); border-radius: 12px;
           background: var(--surface); padding: 24px;
           box-shadow: 0 8px 24px var(--shadow); margin-top: 24px;
-          max-width: 780px;
+          max-width: 860px;
         }
         .lrHeader h3 { margin: 0 0 4px; font-size: 1.1rem; }
         .lrHeader p { margin: 0 0 0; color: var(--muted); font-size: 0.86rem; }
 
         .lrBody {
           display: grid;
-          grid-template-columns: 300px 420px;
+          grid-template-columns: 320px minmax(0, 1fr);
           gap: 28px; align-items: start; margin-top: 20px;
         }
 
