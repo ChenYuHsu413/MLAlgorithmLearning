@@ -25,7 +25,17 @@
 - **新手導覽**：首次訪問顯示 3 步驟引導 Modal，localStorage 記錄已讀狀態
 - **進度追蹤面板**：顯示 N/10 演算法測驗完成狀況，支援一鍵重置
 - **AI 機器學習助教**：WebSocket 逐字串流，支援 Gemini / Groq / OpenRouter / OpenAI 自動切換
-- **線性迴歸模擬實驗室**：調整斜率、截距、噪聲參數，Python 即時計算並繪製迴歸圖，標示 Top-10 離群點
+- **互動演算法實驗室（9 個）**：每個演算法獨立的模擬實驗室，可調整超參數即時觀察模型行為：
+  - 線性迴歸：調整斜率/截距/噪聲，標示 Top-10 離群點
+  - 邏輯迴歸：門檻值滑桿即時更新決策邊界與混淆矩陣（TP/FP/FN/TN）
+  - 決策樹：max_depth 預設按鈕，SVG 互動樹狀圖（hover 顯示特徵/閾值/Gini）
+  - 隨機森林：準確率 vs 樹數折線圖，Top-5 特徵重要性條形圖
+  - SVM：C 值預設按鈕，決策邊界 + margin band + 支援向量高亮
+  - KNN：26×26 全客戶端決策網格，測試點拖曳，K 個最近鄰連線可視化
+  - 樸素貝葉斯：高斯機率密度曲線 + prior 滑桿即時移動決策邊界
+  - K-Means：K 滑桿，彩色群集 + ✕ 群心，Silhouette Score 即時計算
+  - PCA：PC1/PC2 散點圖 + 解釋變異量長條圖，n_components 滑桿高亮
+  - 神經網路：5 種架構預設，30×30 機率熱圖決策邊界，SVG 網路結構圖
 - **骨架屏載入體驗**：首次訪問時頁面立即渲染佈局，演算法卡片與三欄面板以 shimmer 動畫佔位，資料到位後平滑替換，無閃爍感
 - **Render 冷啟動 UX**：後端暖機時顯示友善提示，自動重試，不白畫面
 
@@ -46,6 +56,15 @@
 │   │   ├── DetailModal.jsx          # 演算法完整說明 Modal
 │   │   ├── HeroIllustration.jsx     # Hero 區塊插圖
 │   │   ├── LinearRegressionLab.jsx  # 線性迴歸模擬實驗室
+│   │   ├── LogisticRegressionLab.jsx # 邏輯迴歸實驗室（門檻值滑桿）
+│   │   ├── DecisionTreeLab.jsx      # 決策樹實驗室（SVG 互動樹狀圖）
+│   │   ├── RandomForestLab.jsx      # 隨機森林實驗室（準確率曲線）
+│   │   ├── SVMLab.jsx               # SVM 實驗室（margin band）
+│   │   ├── KNNLab.jsx               # KNN 實驗室（客戶端決策網格）
+│   │   ├── NaiveBayesLab.jsx        # 樸素貝葉斯實驗室（高斯曲線）
+│   │   ├── KMeansLab.jsx            # K-Means 實驗室（群心 ✕ 標記）
+│   │   ├── PCALab.jsx               # PCA 實驗室（EVR 長條圖）
+│   │   ├── NeuralNetworkLab.jsx     # 神經網路實驗室（熱圖決策邊界）
 │   │   ├── MiniChart.jsx            # SVG 動畫圖表元件（10 種演算法）
 │   │   ├── OnboardingModal.jsx      # 首次訪問新手導覽（3 步驟）
 │   │   ├── QuizPanel.jsx            # 小測驗面板（3 題制）
@@ -76,13 +95,22 @@
 | `/api/run-code` | POST | 依 `algorithm_id` 與超參數 `params` 執行真實 scikit-learn 模型，回傳指標與執行時間 |
 | `/api/run-linear-regression` | POST | 對使用者提供的 (x, y) 點組執行線性迴歸 |
 | `/api/simulate-linear-regression` | POST | 依 n, a, b, σ² 參數生成模擬資料並執行迴歸，回傳離群點 |
+| `/api/simulate-logistic-regression` | POST | 邏輯迴歸模擬，回傳各點機率與決策邊界係數 |
+| `/api/simulate-knn` | POST | KNN 訓練資料生成（200 點 2D） |
+| `/api/simulate-naive-bayes` | POST | 高斯 NB 模擬，自動選最具分離度特徵，回傳 μ/σ/prior |
+| `/api/simulate-kmeans` | POST | K-Means 模擬（可調 n_clusters），回傳群心與 Silhouette Score |
+| `/api/simulate-svm` | POST | 線性 SVM（可調 C），回傳邊距寬度與支援向量 |
+| `/api/simulate-random-forest` | POST | 隨機森林準確率曲線（11 個 n 值）與特徵重要性 |
+| `/api/simulate-pca` | POST | PCA 降維，回傳 PC1/PC2 散點與各主成分解釋變異量 |
+| `/api/simulate-decision-tree` | POST | 決策樹（可調 max_depth），回傳遞迴樹狀 JSON |
+| `/api/simulate-neural-network` | POST | MLP（可調層數與激活函數），回傳 30×30 決策邊界熱圖 |
 | `/ws/ai-chat` | WebSocket | AI 助教即時串流問答 |
 
 ## 使用技術
 
 - **Frontend**：Next.js 15、React 18、styled-jsx
 - **Backend**：FastAPI、Uvicorn、Gunicorn、Pydantic
-- **ML**：scikit-learn（LinearRegression）、NumPy
+- **ML**：scikit-learn（LinearRegression, LogisticRegression, DecisionTree, RandomForest, SVC, KNN, GaussianNB, KMeans, PCA, MLPClassifier）、NumPy
 - **AI 助教**：Google Gemini / Groq Llama 3 / OpenRouter / OpenAI GPT-4o-mini（自動故障轉移）
 - **即時通訊**：HTML5 WebSocket API
 - **部署**：Render（免費方案，前後端各一個 Web Service）

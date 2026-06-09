@@ -9,6 +9,15 @@ import CodePanel from '../components/CodePanel';
 import QuizPanel from '../components/QuizPanel';
 import DetailModal from '../components/DetailModal';
 import LinearRegressionLab from '../components/LinearRegressionLab';
+import LogisticRegressionLab from '../components/LogisticRegressionLab';
+import KNNLab from '../components/KNNLab';
+import NaiveBayesLab from '../components/NaiveBayesLab';
+import KMeansLab from '../components/KMeansLab';
+import SVMLab from '../components/SVMLab';
+import RandomForestLab from '../components/RandomForestLab';
+import PCALab from '../components/PCALab';
+import DecisionTreeLab from '../components/DecisionTreeLab';
+import NeuralNetworkLab from '../components/NeuralNetworkLab';
 import OnboardingModal from '../components/OnboardingModal';
 import AlgorithmRelationshipMap from '../components/AlgorithmRelationshipMap';
 
@@ -465,6 +474,15 @@ export default function Home() {
         )}
 
         {active?.id === 0 && <LinearRegressionLab />}
+        {active?.id === 1 && <LogisticRegressionLab />}
+        {active?.id === 5 && <KNNLab />}
+        {active?.id === 6 && <NaiveBayesLab />}
+        {active?.id === 7 && <KMeansLab />}
+        {active?.id === 4 && <SVMLab />}
+        {active?.id === 3 && <RandomForestLab />}
+        {active?.id === 8 && <PCALab />}
+        {active?.id === 2 && <DecisionTreeLab />}
+        {active?.id === 9 && <NeuralNetworkLab />}
 
         {active && (() => {
           const currentIndex = algorithms.findIndex((a) => a.id === activeId);

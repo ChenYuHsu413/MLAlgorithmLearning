@@ -541,6 +541,288 @@ def simulate_linear_regression(data: SimulateLinearRegressionInput):
     }
 
 
+class SimulateSVMInput(BaseModel):
+    C: float = 1.0
+
+
+@app.post("/api/simulate-svm")
+def simulate_svm(data: SimulateSVMInput):
+    C = max(0.01, min(100.0, float(data.C)))
+    X, y = make_classification(
+        n_samples=200, n_features=2, n_informative=2,
+        n_redundant=0, n_clusters_per_class=1, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    model = SVC(kernel="linear", C=C)
+    model.fit(X_scaled, y)
+    w = model.coef_[0]
+    b = float(model.intercept_[0])
+    margin = round(2.0 / float(np.linalg.norm(w)), 4)
+    preds = model.predict(X_scaled)
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, 0]), 3), "y": round(float(X_scaled[i, 1]), 3), "label": int(y[i])}
+            for i in range(len(X_scaled))
+        ],
+        "coef": [round(float(w[0]), 6), round(float(w[1]), 6)],
+        "intercept": b,
+        "margin_width": margin,
+        "n_support": int(sum(model.n_support_)),
+        "accuracy": round(float(accuracy_score(y, preds)), 4),
+        "support_vectors": [
+            {"x": round(float(sv[0]), 3), "y": round(float(sv[1]), 3)}
+            for sv in model.support_vectors_
+        ],
+    }
+
+
+@app.post("/api/simulate-random-forest")
+def simulate_random_forest():
+    X, y = make_classification(n_samples=300, n_features=10, n_informative=5, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=42)
+    n_est_list = [1, 3, 5, 10, 20, 30, 50, 75, 100, 150, 200]
+    curve = []
+    for n in n_est_list:
+        m = RandomForestClassifier(n_estimators=n, random_state=42)
+        m.fit(X_train, y_train)
+        curve.append({"n": n, "acc": round(float(accuracy_score(y_test, m.predict(X_test))), 4)})
+    full = RandomForestClassifier(n_estimators=200, random_state=42)
+    full.fit(X_train, y_train)
+    importances = sorted(
+        [{"feature": f"特徵 {i}", "importance": round(float(v), 4)} for i, v in enumerate(full.feature_importances_)],
+        key=lambda x: x["importance"], reverse=True,
+    )
+    return {
+        "curve": curve,
+        "importances": importances,
+        "n_train": len(X_train),
+        "n_test": len(X_test),
+        "final_acc": round(float(accuracy_score(y_test, full.predict(X_test))), 4),
+    }
+
+
+@app.post("/api/simulate-pca")
+def simulate_pca():
+    X, y = make_classification(
+        n_samples=200, n_features=10, n_informative=8,
+        n_redundant=0, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    pca = PCA(n_components=10)
+    X_pca = pca.fit_transform(X_scaled)
+    evr = pca.explained_variance_ratio_
+    return {
+        "points": [
+            {"x": round(float(X_pca[i, 0]), 3), "y": round(float(X_pca[i, 1]), 3), "label": int(y[i])}
+            for i in range(len(X_pca))
+        ],
+        "evr": [round(float(v), 4) for v in evr],
+        "cumulative_evr": [round(float(np.sum(evr[: k + 1])), 4) for k in range(len(evr))],
+    }
+
+
+class SimulateDecisionTreeInput(BaseModel):
+    max_depth: int = 3
+
+
+@app.post("/api/simulate-decision-tree")
+def simulate_decision_tree(data: SimulateDecisionTreeInput):
+    depth = max(1, min(10, int(data.max_depth)))
+    X, y = make_classification(
+        n_samples=200, n_features=2, n_informative=2,
+        n_redundant=0, n_clusters_per_class=1, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    model = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    model.fit(X_scaled, y)
+    preds = model.predict(X_scaled)
+
+    # Build tree structure for visualization (BFS, capped at 63 nodes = depth 6)
+    from sklearn.tree import _tree
+    tree = model.tree_
+    def recurse(node, depth_left):
+        if node == _tree.TREE_LEAF or depth_left == 0:
+            vals = tree.value[node][0]
+            cls = int(np.argmax(vals))
+            return {"leaf": True, "class": cls, "samples": int(tree.n_node_samples[node]),
+                    "impurity": round(float(tree.impurity[node]), 4)}
+        return {
+            "leaf": False,
+            "feature": int(tree.feature[node]),
+            "threshold": round(float(tree.threshold[node]), 3),
+            "samples": int(tree.n_node_samples[node]),
+            "impurity": round(float(tree.impurity[node]), 4),
+            "left": recurse(tree.children_left[node], depth_left - 1),
+            "right": recurse(tree.children_right[node], depth_left - 1),
+        }
+
+    tree_json = recurse(0, depth)
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, 0]), 3), "y": round(float(X_scaled[i, 1]), 3), "label": int(y[i])}
+            for i in range(len(X_scaled))
+        ],
+        "tree": tree_json,
+        "accuracy": round(float(accuracy_score(y, preds)), 4),
+        "n_leaves": int(model.get_n_leaves()),
+        "max_depth": int(model.get_depth()),
+    }
+
+
+class SimulateNeuralNetInput(BaseModel):
+    hidden_layer_sizes: list[int] = [16, 8]
+    activation: str = "relu"
+
+
+@app.post("/api/simulate-neural-network")
+def simulate_neural_network(data: SimulateNeuralNetInput):
+    sizes = tuple(max(1, min(256, s)) for s in (data.hidden_layer_sizes or [16, 8])[:4])
+    act = data.activation if data.activation in ("relu", "tanh", "logistic") else "relu"
+    X, y = make_classification(
+        n_samples=300, n_features=2, n_informative=2,
+        n_redundant=0, n_clusters_per_class=1, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    model = MLPClassifier(
+        hidden_layer_sizes=sizes,
+        activation=act,
+        max_iter=500,
+        random_state=42,
+        learning_rate_init=0.01,
+    )
+    model.fit(X_scaled, y)
+    preds = model.predict(X_scaled)
+
+    # Decision boundary grid (30×30)
+    xx = np.linspace(X_scaled[:, 0].min() - 0.3, X_scaled[:, 0].max() + 0.3, 30)
+    yy = np.linspace(X_scaled[:, 1].min() - 0.3, X_scaled[:, 1].max() + 0.3, 30)
+    grid = np.array([[xi, yi] for yi in yy for xi in xx])
+    grid_preds = model.predict_proba(grid)[:, 1]
+
+    # Architecture description for visualization
+    layer_sizes = [2] + list(sizes) + [1]
+
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, 0]), 3), "y": round(float(X_scaled[i, 1]), 3), "label": int(y[i])}
+            for i in range(len(X_scaled))
+        ],
+        "grid": {
+            "x": [round(float(v), 3) for v in xx],
+            "y": [round(float(v), 3) for v in yy],
+            "probs": [round(float(v), 3) for v in grid_preds],
+        },
+        "accuracy": round(float(accuracy_score(y, preds)), 4),
+        "n_iter": int(model.n_iter_),
+        "loss": round(float(model.loss_), 4),
+        "layer_sizes": layer_sizes,
+        "activation": act,
+    }
+
+
+@app.post("/api/simulate-naive-bayes")
+def simulate_naive_bayes():
+    X, y = make_classification(
+        n_samples=300, n_features=4, n_informative=2,
+        n_redundant=0, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    model = GaussianNB()
+    model.fit(X_scaled, y)
+    # Pick feature with best class separation (highest |μ1−μ0| / avg σ)
+    seps = [
+        abs(model.theta_[1, f] - model.theta_[0, f])
+        / ((np.sqrt(model.var_[0, f]) + np.sqrt(model.var_[1, f])) / 2)
+        for f in range(X_scaled.shape[1])
+    ]
+    feat = int(np.argmax(seps))
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, feat]), 3), "label": int(y[i])}
+            for i in range(len(X_scaled))
+        ],
+        "class0": {
+            "mu": round(float(model.theta_[0, feat]), 4),
+            "sigma": round(float(np.sqrt(model.var_[0, feat])), 4),
+            "prior": round(float(model.class_prior_[0]), 4),
+        },
+        "class1": {
+            "mu": round(float(model.theta_[1, feat]), 4),
+            "sigma": round(float(np.sqrt(model.var_[1, feat])), 4),
+            "prior": round(float(model.class_prior_[1]), 4),
+        },
+    }
+
+
+@app.post("/api/simulate-knn")
+def simulate_knn():
+    X, y = make_classification(
+        n_samples=200, n_features=2, n_informative=2,
+        n_redundant=0, n_clusters_per_class=1, random_state=7,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, 0]), 3), "y": round(float(X_scaled[i, 1]), 3), "label": int(y[i])}
+            for i in range(len(X_scaled))
+        ],
+    }
+
+
+@app.post("/api/simulate-logistic-regression")
+def simulate_logistic_regression():
+    X, y = make_classification(
+        n_samples=200, n_features=2, n_informative=2,
+        n_redundant=0, n_clusters_per_class=1, random_state=42,
+    )
+    X_scaled = StandardScaler().fit_transform(X)
+    model = SklearnLGR(max_iter=1000, random_state=42)
+    model.fit(X_scaled, y)
+    probs = model.predict_proba(X_scaled)[:, 1]
+    return {
+        "points": [
+            {
+                "x": round(float(X_scaled[i, 0]), 3),
+                "y": round(float(X_scaled[i, 1]), 3),
+                "label": int(y[i]),
+                "prob": round(float(probs[i]), 4),
+            }
+            for i in range(len(X_scaled))
+        ],
+        "coef": [round(float(model.coef_[0][0]), 6), round(float(model.coef_[0][1]), 6)],
+        "intercept": round(float(model.intercept_[0]), 6),
+    }
+
+
+class SimulateKMeansInput(BaseModel):
+    n_clusters: int = 4
+
+
+@app.post("/api/simulate-kmeans")
+def simulate_kmeans(data: SimulateKMeansInput):
+    n_clusters = max(1, min(10, data.n_clusters))
+    X, _ = make_blobs(n_samples=200, centers=4, cluster_std=1.2, random_state=42)
+    X_scaled = StandardScaler().fit_transform(X)
+    model = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+    labels = model.fit_predict(X_scaled)
+    centers = model.cluster_centers_
+    inertia = float(model.inertia_)
+    sil = float(silhouette_score(X_scaled, labels)) if n_clusters > 1 else 0.0
+    return {
+        "points": [
+            {"x": round(float(X_scaled[i, 0]), 3), "y": round(float(X_scaled[i, 1]), 3), "label": int(labels[i])}
+            for i in range(len(X_scaled))
+        ],
+        "centers": [
+            {"x": round(float(centers[j, 0]), 3), "y": round(float(centers[j, 1]), 3), "label": j}
+            for j in range(n_clusters)
+        ],
+        "inertia": round(inertia, 2),
+        "silhouette": round(sil, 4),
+        "n_clusters": n_clusters,
+    }
+
+
 class RunCodeInput(BaseModel):
     algorithm_id: int
     params: dict = {}

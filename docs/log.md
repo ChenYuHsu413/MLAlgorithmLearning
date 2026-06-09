@@ -332,6 +332,117 @@ git push
 
 ---
 
+## Session 15 — 2026-06-09｜Phase 5-3 決策樹 + 神經網路實驗室
+
+### 目標
+建置決策樹（id=2）與神經網路（id=9）互動實驗室。
+
+### 後端新增端點
+```python
+# POST /api/simulate-decision-tree
+# - 接收 max_depth（1-10），DecisionTreeClassifier 訓練
+# - 遞迴建立樹 JSON（{leaf, feature, threshold, samples, impurity, left, right}）
+# - 葉節點偵測：if node == _tree.TREE_LEAF or depth_left == 0
+# - 回傳 points, tree, accuracy, n_leaves, max_depth
+
+# POST /api/simulate-neural-network
+# - 接收 hidden_layer_sizes: list[int], activation: str
+# - MLPClassifier(max_iter=500)，生成 30×30 決策邊界機率網格
+# - layer_sizes = [2] + list(sizes) + [1]（輸入+隱藏+輸出）
+# - 回傳 points, grid{x,y,probs}, accuracy, n_iter, loss, layer_sizes
+```
+
+### 前端新元件
+```
+frontend/components/DecisionTreeLab.jsx  # id=2
+frontend/components/NeuralNetworkLab.jsx # id=9
+```
+
+### Code Review（7 角度高精度審查）
+發現並驗證 6 項問題（詳見工作報告 Phase 5 第 7 節）：
+- CONFIRMED：recurse() 葉節點偵測錯誤（numpy -1 wraparound）
+- CONFIRMED：flattenTree 深度 ≥2 節點重疊
+- CONFIRMED：5 個新元件缺少 error state / catch block
+- CONFIRMED：決策樹 tooltip SVG z-order 被後繪子節點遮蓋
+- CONFIRMED：NeuralNetworkLab 預設按鈕競態條件
+- CONFIRMED：simulate_random_forest 冗餘第 12 個模型
+
+### Git 提交
+```bash
+git add backend/main.py \
+        frontend/components/DecisionTreeLab.jsx \
+        frontend/components/NeuralNetworkLab.jsx \
+        frontend/pages/index.js \
+        docs/log.md "docs/工作報告.md" README.md
+git commit -m "feat: Phase 5-3 — Decision Tree and Neural Network interactive labs"
+git push
+```
+
+---
+
+## Session 14 — 2026-06-09｜Phase 5-2 SVM + 隨機森林 + PCA 實驗室
+
+### 後端新增端點
+```python
+# POST /api/simulate-svm (SimulateSVMInput: C: float = 1.0)
+# - 線性核 SVC，回傳 coef, intercept, margin_width=2/||w||, support_vectors, accuracy
+
+# POST /api/simulate-random-forest
+# - 訓練 11 個模型（n=1,3,5,10,20,30,50,75,100,150,200）生成準確率曲線
+# - 另訓 n=200 完整模型取得 importances（已知冗餘，待修復）
+# - 回傳 curve, importances, n_train, n_test, final_acc
+
+# POST /api/simulate-pca
+# - 10 特徵 PCA(n_components=10)，回傳 PC1/PC2 散點、evr[10]、cumulative_evr[10]
+```
+
+### 前端新元件
+```
+frontend/components/SVMLab.jsx          # id=4
+frontend/components/RandomForestLab.jsx # id=3
+frontend/components/PCALab.jsx          # id=8
+```
+
+### 設計重點
+- SVMLab：C 預設按鈕組 + 套用確認，margin band 填色，支援向量外框高亮
+- RandomForestLab：滑桿高亮曲線點（純前端），折線面積圖，Top-5 特徵重要性條形
+- PCALab：n_components 滑桿高亮 EVR 長條（純前端），PC1/PC2 散點圖
+
+---
+
+## Session 13 — 2026-06-09｜Phase 5-1 邏輯迴歸 + KNN + 樸素貝葉斯 + K-Means 實驗室
+
+### 後端新增端點
+```python
+# POST /api/simulate-logistic-regression
+# - 回傳 points+prob, coef[w1,w2], intercept
+
+# POST /api/simulate-knn
+# - 回傳 200 點 2D 訓練資料（random_state=7）
+
+# POST /api/simulate-naive-bayes
+# - 自動選最具分離度特徵，回傳 μ/σ/prior × 2 類別
+
+# POST /api/simulate-kmeans (SimulateKMeansInput: n_clusters: int = 4)
+# - 回傳 points, centers, inertia, silhouette
+```
+
+### 前端新元件
+```
+frontend/components/LogisticRegressionLab.jsx # id=1
+frontend/components/KNNLab.jsx                # id=5
+frontend/components/NaiveBayesLab.jsx         # id=6
+frontend/components/KMeansLab.jsx             # id=7
+```
+
+### 設計重點
+- LogisticRegression：門檻值滑桿 = 純前端（logit 公式），即時混淆矩陣
+- KNN：26×26 決策網格全客戶端計算，`useMemo` 依賴 `[trainData, k, chart]`
+- NaiveBayes：`buildChart(result)` 與 prior 完全解耦，Prior 滑桿只移動邊界線
+- KMeans：K 滑桿觸發 API，✕ 群心標記，Silhouette Score 統計
+
+---
+
 ## 1. 系統診斷與除錯指令
 用於檢查環境變數與埠口佔用狀況：
 ```powershell
