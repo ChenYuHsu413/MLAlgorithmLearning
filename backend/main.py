@@ -478,6 +478,56 @@ def run_linear_regression(data: LinearRegressionInput):
     }
 
 
+class SimulateLinearRegressionInput(BaseModel):
+    n: int
+    a: float
+    b: float
+    var: float
+
+
+@app.post("/api/simulate-linear-regression")
+def simulate_linear_regression(data: SimulateLinearRegressionInput):
+    if not (5 <= data.n <= 500):
+        raise HTTPException(status_code=400, detail="n 必須介於 5 ~ 500 之間")
+    if not (-200 <= data.a <= 200):
+        raise HTTPException(status_code=400, detail="a 超出範圍")
+    var = max(0.0, data.var)
+
+    rng = np.random.default_rng()
+    x_vals = rng.uniform(-100, 100, data.n)
+    noise = rng.normal(0, float(np.sqrt(var)), data.n) if var > 0 else np.zeros(data.n)
+    y_vals = data.a * x_vals + data.b + noise
+
+    X = x_vals.reshape(-1, 1)
+    model = SklearnLR()
+    model.fit(X, y_vals)
+
+    fitted_a = float(model.coef_[0])
+    fitted_b = float(model.intercept_)
+    r_squared = float(model.score(X, y_vals))
+
+    y_pred = model.predict(X)
+    residuals = np.abs(y_vals - y_pred)
+    top10_idx = np.argsort(residuals)[-10:][::-1].tolist()
+
+    true_line_y = [data.a * -100 + data.b, data.a * 100 + data.b]
+    fitted_line_y = [fitted_a * -100 + fitted_b, fitted_a * 100 + fitted_b]
+    rmse = float(np.sqrt(np.mean((y_vals - y_pred) ** 2)))
+
+    return {
+        "x_values": [round(float(v), 3) for v in x_vals],
+        "y_values": [round(float(v), 3) for v in y_vals],
+        "fitted_slope": round(fitted_a, 4),
+        "fitted_intercept": round(fitted_b, 4),
+        "r_squared": round(r_squared, 4),
+        "rmse": round(rmse, 4),
+        "true_line_y": [round(v, 4) for v in true_line_y],
+        "fitted_line_y": [round(v, 4) for v in fitted_line_y],
+        "outlier_indices": top10_idx,
+        "residuals": [round(float(v), 3) for v in residuals],
+    }
+
+
 SYSTEM_PROMPT_MOCK = (
     "你是一位專業的「機器學習助教」。你的回答必須緊扣本平台的教學內容：4 種學習類型與 10 大核心演算法。"
     "你需要引導學生思考完整的建模流程（1. 問題定義 -> 2. 資料蒐集 -> 3. 資料清理 -> 4. 特徵工程 -> 5. 訓練/驗證/測試切分 -> 6. 模型訓練 -> 7. 模型評估 -> 8. 解釋與部署維護）。"
