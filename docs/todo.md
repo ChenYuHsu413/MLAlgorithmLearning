@@ -71,11 +71,11 @@ Generated: 2026-06-09
 
 ## Phase 4 — Technical Improvements
 
-### 4-1. Real Code Execution
-- [ ] Add a backend endpoint (e.g., `POST /api/run-code`) that runs scikit-learn on toy datasets
-- [ ] Replace the fake hardcoded mock output in CodePanel with real execution results
-- [ ] Show actual model accuracy, predictions, and timing in the output panel
-- [ ] Add input parameters the user can tweak before running (e.g., n_neighbors for KNN)
+### 4-1. Real Code Execution ✅ DONE
+- [x] Add a backend endpoint (e.g., `POST /api/run-code`) that runs scikit-learn on toy datasets
+- [x] Replace the fake hardcoded mock output in CodePanel with real execution results
+- [x] Show actual model accuracy, predictions, and timing in the output panel
+- [x] Add input parameters the user can tweak before running (e.g., n_neighbors for KNN)
 
 ### 4-2. CORS Security
 - [ ] Restrict `allow_origins` in `backend/main.py` from `["*"]` to the actual frontend domain
