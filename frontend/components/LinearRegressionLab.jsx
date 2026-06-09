@@ -193,7 +193,7 @@ export default function LinearRegressionLab() {
               </div>
 
               <div className="svgWrap">
-                <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="simChart">
+                <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="simChart" style={{maxHeight: '300px'}}>
                   {/* grid */}
                   {chart.yTicks.map((t, i) => (
                     <line key={i}
@@ -253,20 +253,29 @@ export default function LinearRegressionLab() {
                     stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"
                   />
 
-                  {/* outlier points (on top) */}
+                  {/* outlier drop-lines (drawn before circles so circles sit on top) */}
                   {result.outlier_indices.map((idx) => (
-                    <g key={idx}>
-                      <circle
-                        cx={chart.toX(result.x_values[idx])} cy={chart.toY(result.y_values[idx])}
-                        r="7" fill="#f97316" fillOpacity="0.85" stroke="#fff" strokeWidth="1.5"
-                      />
-                      <line
-                        x1={chart.toX(result.x_values[idx])} y1={chart.toY(result.y_values[idx])}
-                        x2={chart.toX(result.x_values[idx])} y2={chart.toY(result.fitted_slope * result.x_values[idx] + result.fitted_intercept)}
-                        stroke="#f97316" strokeWidth="1.2" strokeDasharray="3 2" opacity="0.7"
-                      />
-                    </g>
+                    <line key={`dl-${idx}`}
+                      x1={chart.toX(result.x_values[idx])} y1={chart.toY(result.y_values[idx])}
+                      x2={chart.toX(result.x_values[idx])} y2={chart.toY(result.fitted_slope * result.x_values[idx] + result.fitted_intercept)}
+                      stroke="#fb923c" strokeWidth="2" opacity="0.9"
+                    />
                   ))}
+
+                  {/* outlier points — glow ring + filled circle + rank number */}
+                  {result.outlier_indices.map((idx, rank) => {
+                    const cx = chart.toX(result.x_values[idx]);
+                    const cy = chart.toY(result.y_values[idx]);
+                    return (
+                      <g key={`ol-${idx}`}>
+                        <circle cx={cx} cy={cy} r="15" fill="#f97316" opacity="0.18" />
+                        <circle cx={cx} cy={cy} r="10" fill="#f97316" stroke="#fff" strokeWidth="2" />
+                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="800" fill="#fff">
+                          {rank + 1}
+                        </text>
+                      </g>
+                    );
+                  })}
                 </svg>
               </div>
 
@@ -371,7 +380,7 @@ export default function LinearRegressionLab() {
         .chartLegend span { display: flex; align-items: center; gap: 5px; }
         .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
         .dot.blue { background: #64748b; opacity: 0.7; }
-        .dot.orange.big { background: #f97316; width: 13px; height: 13px; border: 2px solid #fff; box-shadow: 0 0 0 1px #f97316; }
+        .dot.orange.big { background: #f97316; width: 16px; height: 16px; border: 2px solid #fff; box-shadow: 0 0 0 3px rgba(249,115,22,0.25); }
         .line { display: inline-block; width: 22px; height: 3px; border-radius: 2px; }
         .line.blue { background: #3b82f6; }
         .line.blue.dashed { background: repeating-linear-gradient(90deg, #3b82f6 0 5px, transparent 5px 9px); }
