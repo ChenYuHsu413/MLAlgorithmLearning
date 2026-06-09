@@ -11,11 +11,13 @@ export default function PCALab() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [nComponents, setNComponents] = useState(2);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch('/api/simulate-pca', { method: 'POST' })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => setResult(d))
+      .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -75,6 +77,12 @@ export default function PCALab() {
           <span>{evr.length || 10}</span>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/40 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          載入失敗：{error}
+        </div>
+      )}
 
       {loading && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 h-48 flex items-center justify-center text-gray-400 text-sm">

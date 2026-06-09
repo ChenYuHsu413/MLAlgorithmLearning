@@ -586,10 +586,8 @@ def simulate_random_forest():
         m = RandomForestClassifier(n_estimators=n, random_state=42)
         m.fit(X_train, y_train)
         curve.append({"n": n, "acc": round(float(accuracy_score(y_test, m.predict(X_test))), 4)})
-    full = RandomForestClassifier(n_estimators=200, random_state=42)
-    full.fit(X_train, y_train)
     importances = sorted(
-        [{"feature": f"特徵 {i}", "importance": round(float(v), 4)} for i, v in enumerate(full.feature_importances_)],
+        [{"feature": f"特徵 {i}", "importance": round(float(v), 4)} for i, v in enumerate(m.feature_importances_)],
         key=lambda x: x["importance"], reverse=True,
     )
     return {
@@ -597,7 +595,7 @@ def simulate_random_forest():
         "importances": importances,
         "n_train": len(X_train),
         "n_test": len(X_test),
-        "final_acc": round(float(accuracy_score(y_test, full.predict(X_test))), 4),
+        "final_acc": curve[-1]["acc"],
     }
 
 
@@ -641,7 +639,7 @@ def simulate_decision_tree(data: SimulateDecisionTreeInput):
     from sklearn.tree import _tree
     tree = model.tree_
     def recurse(node, depth_left):
-        if node == _tree.TREE_LEAF or depth_left == 0:
+        if tree.children_left[node] == _tree.TREE_LEAF or depth_left == 0:
             vals = tree.value[node][0]
             cls = int(np.argmax(vals))
             return {"leaf": True, "class": cls, "samples": int(tree.n_node_samples[node]),

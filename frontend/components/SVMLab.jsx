@@ -24,16 +24,21 @@ export default function SVMLab() {
   const [pendingC, setPendingC] = useState(1.0);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchSVM = useCallback(async (cVal) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/simulate-svm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ C: cVal }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setResult(await res.json());
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -119,6 +124,12 @@ export default function SVMLab() {
           </button>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/40 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          載入失敗：{error}
+        </div>
+      )}
 
       {/* Visualization + Stats */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

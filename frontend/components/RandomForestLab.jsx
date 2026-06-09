@@ -6,11 +6,13 @@ export default function RandomForestLab() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedIdx, setSelectedIdx] = useState(10); // index into curve (200 trees)
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetch('/api/simulate-random-forest', { method: 'POST' })
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(d => { setResult(d); setSelectedIdx(d.curve.length - 1); })
+      .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -54,6 +56,12 @@ export default function RandomForestLab() {
         <h3 className="text-white font-semibold mb-1">隨機森林 實驗室</h3>
         <p className="text-gray-400 text-sm">觀察決策樹數量對準確率的影響，以及各特徵的重要性排名。</p>
       </div>
+
+      {error && (
+        <div className="bg-red-900/40 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          載入失敗：{error}
+        </div>
+      )}
 
       {loading && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 h-48 flex items-center justify-center text-gray-400 text-sm">

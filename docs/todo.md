@@ -114,26 +114,26 @@ Generated: 2026-06-09
 
 從 Phase 5 的 7 角度程式碼審查確認以下問題，尚待修復：
 
-- [ ] **🔴 `recurse()` 葉節點偵測錯誤**（`backend/main.py`）
+- [x] **🔴 `recurse()` 葉節點偵測錯誤**（`backend/main.py`）
   - 改 `node == _tree.TREE_LEAF` → `tree.children_left[node] == _tree.TREE_LEAF`
   - 影響：決策樹 SVG 圖所有葉節點顯示錯誤的類別/樣本數/Gini
 
-- [ ] **🔴 `flattenTree` 節點重疊**（`frontend/components/DecisionTreeLab.jsx`）
+- [x] **🔴 `flattenTree` 節點重疊**（`frontend/components/DecisionTreeLab.jsx`）
   - 深度 ≥ 2 即重疊（30px 間距 < 36px 直徑），深度 8 僅 0.47px
-  - 需改用後序賦值算法，保證最小間距 ≥ 2×NODE_R
+  - 改用後序賦值算法（MIN_GAP = 42px），保證最小間距 ≥ 2×NODE_R
 
-- [ ] **🟡 5 個新實驗室缺少 error state**（SVMLab、DecisionTreeLab、NeuralNetworkLab、RandomForestLab、PCALab）
+- [x] **🟡 5 個新實驗室缺少 error state**（SVMLab、DecisionTreeLab、NeuralNetworkLab、RandomForestLab、PCALab）
   - 參照 KMeansLab 模式：加 `catch` block、`error` state、錯誤訊息顯示
 
-- [ ] **🟡 決策樹 tooltip z-order 問題**（`frontend/components/DecisionTreeLab.jsx`）
+- [x] **🟡 決策樹 tooltip z-order 問題**（`frontend/components/DecisionTreeLab.jsx`）
   - tooltip 渲染在節點 `<g>` 內部，被後繪子節點遮蓋
-  - 修法：將 active tooltip 移至 SVG 頂層 `<g>`（最後渲染）
+  - 已將 active tooltip 移至 SVG 頂層（最後渲染）
 
-- [ ] **🟡 NeuralNetworkLab 競態條件**（`frontend/components/NeuralNetworkLab.jsx`）
+- [x] **🟡 NeuralNetworkLab 競態條件**（`frontend/components/NeuralNetworkLab.jsx`）
   - 預設按鈕缺少 `disabled={loading}` 守衛，快速點擊產生亂序回應
-  - 加 `disabled={loading}` 或 AbortController
+  - 已加 `disabled={loading}`
 
-- [ ] **🟢 `simulate_random_forest` 冗餘模型**（`backend/main.py`）
+- [x] **🟢 `simulate_random_forest` 冗餘模型**（`backend/main.py`）
   - 移除第 12 個 n=200 模型，直接從迴圈最後一個 `m` 提取 `importances`
 
 ---

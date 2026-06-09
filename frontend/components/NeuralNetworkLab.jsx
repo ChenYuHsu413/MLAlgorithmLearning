@@ -43,9 +43,11 @@ export default function NeuralNetworkLab() {
   const [preset, setPreset] = useState(1); // default [16,8]
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const fetchNN = useCallback(async (p) => {
     setLoading(true);
+    setError(null);
     try {
       const { sizes, activation } = PRESETS[p];
       const res = await fetch('/api/simulate-neural-network', {
@@ -53,7 +55,10 @@ export default function NeuralNetworkLab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hidden_layer_sizes: sizes, activation }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setResult(await res.json());
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -113,8 +118,9 @@ export default function NeuralNetworkLab() {
           {PRESETS.map((p, i) => (
             <button
               key={i}
+              disabled={loading}
               onClick={() => { setPreset(i); fetchNN(i); }}
-              className={`px-3 py-1.5 rounded text-xs font-mono border transition-colors ${
+              className={`px-3 py-1.5 rounded text-xs font-mono border transition-colors disabled:opacity-40 ${
                 preset === i
                   ? 'bg-amber-500 border-amber-400 text-black font-bold'
                   : 'border-gray-600 text-gray-300 hover:border-amber-500'
@@ -125,6 +131,12 @@ export default function NeuralNetworkLab() {
           ))}
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-900/40 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          載入失敗：{error}
+        </div>
+      )}
 
       {loading && (
         <div className="bg-gray-800 rounded-xl border border-gray-700 h-48 flex items-center justify-center text-gray-400 text-sm">

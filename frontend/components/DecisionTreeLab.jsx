@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 const W = 420, H = 360, PAD = 36;
-const NODE_R = 18, V_GAP = 64, H_GAP_BASE = 120;
+const NODE_R = 18, V_GAP = 64, MIN_GAP = NODE_R * 2 + 6; // guaranteed min center-to-center
 
 function toSVG(v, min, max, px0, px1) {
   return px0 + ((v - min) / (max - min)) * (px1 - px0);
@@ -19,22 +19,38 @@ function buildChart(points) {
   };
 }
 
-// Flatten tree into {id, node, x, y, parentId} for SVG rendering
-function flattenTree(tree, depth, maxDepth) {
+// Post-order x assignment: leaves get sequential positions, parents get midpoint of children.
+// Guarantees MIN_GAP between any two adjacent leaf centers at every depth.
+function flattenTree(tree, maxDepth) {
   const nodes = [];
-  function visit(node, d, pos, parentId, hSpan) {
+  let leafX = 0;
+
+  function build(node, d, parentId) {
     const id = nodes.length;
-    const x = pos;
-    const y = 28 + d * V_GAP;
-    nodes.push({ id, node, x, y, parentId });
+    nodes.push({ id, node, x: 0, y: 28 + d * V_GAP, parentId, leftId: -1, rightId: -1 });
     if (!node.leaf && d < maxDepth) {
-      const half = hSpan / 2;
-      visit(node.left, d + 1, pos - half, id, half);
-      visit(node.right, d + 1, pos + half, id, half);
+      const leftId = build(node.left, d + 1, id);
+      const rightId = build(node.right, d + 1, id);
+      nodes[id].leftId = leftId;
+      nodes[id].rightId = rightId;
     }
     return id;
   }
-  visit(tree, 0, 0, null, H_GAP_BASE);
+  build(tree, 0, null);
+
+  function assignX(id) {
+    const n = nodes[id];
+    if (n.leftId === -1) {
+      n.x = leafX;
+      leafX += MIN_GAP;
+    } else {
+      assignX(n.leftId);
+      assignX(n.rightId);
+      n.x = (nodes[n.leftId].x + nodes[n.rightId].x) / 2;
+    }
+  }
+  assignX(0);
+
   return nodes;
 }
 
@@ -43,17 +59,22 @@ export default function DecisionTreeLab() {
   const [pendingDepth, setPendingDepth] = useState(3);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [hoveredId, setHoveredId] = useState(null);
 
   const fetchTree = useCallback(async (d) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/simulate-decision-tree', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ max_depth: d }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setResult(await res.json());
+    } catch (e) {
+      setError(e.message);
     } finally {
       setLoading(false);
     }
@@ -65,10 +86,9 @@ export default function DecisionTreeLab() {
 
   const treeNodes = useMemo(() => {
     if (!result?.tree) return [];
-    return flattenTree(result.tree, 0, maxDepth);
+    return flattenTree(result.tree, maxDepth);
   }, [result, maxDepth]);
 
-  // Bounding box for the tree SVG
   const treeBounds = useMemo(() => {
     if (!treeNodes.length) return { minX: 0, maxX: 0, minY: 0, maxY: 0, w: 200, h: 100 };
     const xs = treeNodes.map(n => n.x), ys = treeNodes.map(n => n.y);
@@ -85,6 +105,7 @@ export default function DecisionTreeLab() {
   };
 
   const FEAT_NAMES = ['特徵 0', '特徵 1'];
+  const hoveredNode = hoveredId !== null ? treeNodes[hoveredId] : null;
 
   return (
     <div className="space-y-6">
@@ -122,6 +143,12 @@ export default function DecisionTreeLab() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-900/40 border border-red-700 rounded-xl p-4 text-red-300 text-sm">
+          載入失敗：{error}
+        </div>
+      )}
+
       {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Scatter plot */}
@@ -152,7 +179,7 @@ export default function DecisionTreeLab() {
               className="w-full h-auto"
               style={{ minWidth: '320px' }}
             >
-              {/* Edges first */}
+              {/* Edges */}
               {treeNodes.map(n => {
                 if (n.parentId === null) return null;
                 const parent = treeNodes[n.parentId];
@@ -165,7 +192,7 @@ export default function DecisionTreeLab() {
                   />
                 );
               })}
-              {/* Nodes */}
+              {/* Nodes — no tooltip inside, keeps z-order clean */}
               {treeNodes.map(n => {
                 const isHover = hoveredId === n.id;
                 const color = n.node.leaf
@@ -199,33 +226,36 @@ export default function DecisionTreeLab() {
                         </text>
                       </>
                     )}
-                    {/* Tooltip */}
-                    {isHover && (
-                      <g>
-                        <rect
-                          x={n.x + NODE_R + 4} y={n.y - 28}
-                          width={110} height={n.node.leaf ? 44 : 54}
-                          rx={4} fill="#1f2937" stroke="#374151" strokeWidth={1}
-                        />
-                        {n.node.leaf ? (
-                          <>
-                            <text x={n.x + NODE_R + 10} y={n.y - 14} fontSize={9} fill="#d1d5db">葉節點 → 類別 {n.node.class}</text>
-                            <text x={n.x + NODE_R + 10} y={n.y - 2} fontSize={9} fill="#9ca3af">樣本數: {n.node.samples}</text>
-                            <text x={n.x + NODE_R + 10} y={n.y + 10} fontSize={9} fill="#9ca3af">Gini: {n.node.impurity}</text>
-                          </>
-                        ) : (
-                          <>
-                            <text x={n.x + NODE_R + 10} y={n.y - 14} fontSize={9} fill="#d1d5db">{FEAT_NAMES[n.node.feature]}</text>
-                            <text x={n.x + NODE_R + 10} y={n.y - 2} fontSize={9} fill="#fbbf24">閾值: {n.node.threshold}</text>
-                            <text x={n.x + NODE_R + 10} y={n.y + 10} fontSize={9} fill="#9ca3af">樣本數: {n.node.samples}</text>
-                            <text x={n.x + NODE_R + 10} y={n.y + 22} fontSize={9} fill="#9ca3af">Gini: {n.node.impurity}</text>
-                          </>
-                        )}
-                      </g>
-                    )}
                   </g>
                 );
               })}
+              {/* Tooltip rendered last — always on top of all nodes */}
+              {hoveredNode && (() => {
+                const n = hoveredNode;
+                return (
+                  <g pointerEvents="none">
+                    <rect
+                      x={n.x + NODE_R + 4} y={n.y - 28}
+                      width={110} height={n.node.leaf ? 44 : 54}
+                      rx={4} fill="#1f2937" stroke="#374151" strokeWidth={1}
+                    />
+                    {n.node.leaf ? (
+                      <>
+                        <text x={n.x + NODE_R + 10} y={n.y - 14} fontSize={9} fill="#d1d5db">葉節點 → 類別 {n.node.class}</text>
+                        <text x={n.x + NODE_R + 10} y={n.y - 2} fontSize={9} fill="#9ca3af">樣本數: {n.node.samples}</text>
+                        <text x={n.x + NODE_R + 10} y={n.y + 10} fontSize={9} fill="#9ca3af">Gini: {n.node.impurity}</text>
+                      </>
+                    ) : (
+                      <>
+                        <text x={n.x + NODE_R + 10} y={n.y - 14} fontSize={9} fill="#d1d5db">{FEAT_NAMES[n.node.feature]}</text>
+                        <text x={n.x + NODE_R + 10} y={n.y - 2} fontSize={9} fill="#fbbf24">閾值: {n.node.threshold}</text>
+                        <text x={n.x + NODE_R + 10} y={n.y + 10} fontSize={9} fill="#9ca3af">樣本數: {n.node.samples}</text>
+                        <text x={n.x + NODE_R + 10} y={n.y + 22} fontSize={9} fill="#9ca3af">Gini: {n.node.impurity}</text>
+                      </>
+                    )}
+                  </g>
+                );
+              })()}
             </svg>
           )}
         </div>
