@@ -24,6 +24,7 @@ export default function Home() {
     } catch { return {}; }
   });
   const [scene, setScene] = useState('dark');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [simulationRun, setSimulationRun] = useState(0);
   const [simulationStatus, setSimulationStatus] = useState('尚未開始模擬');
@@ -32,21 +33,42 @@ export default function Home() {
   const [showDetails, setShowDetails] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const labRef = useRef(null);
+  const retryTimerRef = useRef(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/algorithms`)
-      .then((res) => {
-        if (!res.ok) throw new Error('無法取得資料');
-        return res.json();
-      })
-      .then((data) => {
-        setAlgorithms(data);
-        setActiveId(data[0]?.id ?? 0);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError('目前無法讀取資料，請確認後端 API 是否已啟動。');
-      });
+    function fetchAlgorithms() {
+      setLoading(true);
+      fetch(`${API_BASE_URL}/api/algorithms`)
+        .then((res) => {
+          if (!res.ok) throw new Error('無法取得資料');
+          return res.json();
+        })
+        .then((data) => {
+          setAlgorithms(data);
+          setActiveId(data[0]?.id ?? 0);
+          setLoading(false);
+          setError('');
+          if (retryTimerRef.current) {
+            clearInterval(retryTimerRef.current);
+            retryTimerRef.current = null;
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          setLoading(false);
+          setError('warming-up');
+          if (!retryTimerRef.current) {
+            retryTimerRef.current = setInterval(fetchAlgorithms, 10000);
+          }
+        });
+    }
+    fetchAlgorithms();
+    return () => {
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -134,6 +156,149 @@ export default function Home() {
       title: `${active.shortName} 執行結果`,
       lines: executionResults[active.id] || ['程式碼執行完成', 'Result: ok'],
     });
+  }
+
+  if (loading && algorithms.length === 0) {
+    return (
+      <main className={`appShell ${scene} warmupScreen`}>
+        <div className="warmupCard">
+          <div className="warmupSpinner" />
+          <h2>平台啟動中</h2>
+          <p>系統初始化中，請稍候…</p>
+        </div>
+        <style jsx global>{`
+          html, body { margin: 0; height: 100%; }
+        `}</style>
+        <style jsx>{`
+          .warmupScreen {
+            --bg: #f8fafc; --surface: #fff; --text: #172033;
+            --muted: #475569; --line: #dbe3ef; --accent: #4f63f6; --shadow: rgba(15,23,42,0.05);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg);
+            font-family: Arial, 'Noto Sans TC', sans-serif;
+            color: var(--text);
+          }
+          .warmupScreen.dark {
+            --bg: #0b1120; --surface: #111827; --text: #e5e7eb;
+            --muted: #cbd5e1; --line: #334155; --accent: #8b9cff; --shadow: rgba(0,0,0,0.24);
+          }
+          .warmupCard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            padding: 40px 48px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            box-shadow: 0 12px 40px var(--shadow);
+            text-align: center;
+            max-width: 340px;
+          }
+          .warmupSpinner {
+            width: 44px;
+            height: 44px;
+            border: 4px solid var(--line);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+          h2 { margin: 0; font-size: 1.25rem; color: var(--text); }
+          p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+        `}</style>
+      </main>
+    );
+  }
+
+  if (error === 'warming-up' && algorithms.length === 0) {
+    return (
+      <main className={`appShell ${scene} warmupScreen`}>
+        <div className="warmupCard">
+          <div className="warmupIcon">☁</div>
+          <h2>後端服務喚醒中</h2>
+          <p>平台使用 Render 免費方案，閒置一段時間後伺服器會暫停。</p>
+          <p className="sub">正在重新啟動，約需 <strong>30 ~ 60 秒</strong>，頁面將自動重試。</p>
+          <button
+            type="button"
+            className="retryBtn"
+            onClick={() => {
+              if (retryTimerRef.current) {
+                clearInterval(retryTimerRef.current);
+                retryTimerRef.current = null;
+              }
+              setError('');
+              setLoading(true);
+              fetch(`${API_BASE_URL}/api/algorithms`)
+                .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
+                .then((data) => { setAlgorithms(data); setActiveId(data[0]?.id ?? 0); setLoading(false); setError(''); })
+                .catch(() => { setLoading(false); setError('warming-up'); retryTimerRef.current = setInterval(() => {
+                  fetch(`${API_BASE_URL}/api/algorithms`)
+                    .then((res) => { if (!res.ok) throw new Error(); return res.json(); })
+                    .then((data) => { setAlgorithms(data); setActiveId(data[0]?.id ?? 0); setError(''); clearInterval(retryTimerRef.current); retryTimerRef.current = null; })
+                    .catch(() => {});
+                }, 10000); });
+            }}
+          >
+            立即重試
+          </button>
+        </div>
+        <style jsx global>{`
+          html, body { margin: 0; height: 100%; }
+        `}</style>
+        <style jsx>{`
+          .warmupScreen {
+            --bg: #f8fafc; --surface: #fff; --text: #172033;
+            --muted: #475569; --line: #dbe3ef; --accent: #4f63f6; --shadow: rgba(15,23,42,0.05);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--bg);
+            font-family: Arial, 'Noto Sans TC', sans-serif;
+            color: var(--text);
+          }
+          .warmupScreen.dark {
+            --bg: #0b1120; --surface: #111827; --text: #e5e7eb;
+            --muted: #cbd5e1; --line: #334155; --accent: #8b9cff; --shadow: rgba(0,0,0,0.24);
+          }
+          .warmupCard {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 40px 48px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            box-shadow: 0 12px 40px var(--shadow);
+            text-align: center;
+            max-width: 360px;
+          }
+          .warmupIcon {
+            font-size: 2.4rem;
+            line-height: 1;
+          }
+          h2 { margin: 0; font-size: 1.25rem; color: var(--text); }
+          p { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.6; }
+          .sub strong { color: var(--text); }
+          .retryBtn {
+            margin-top: 8px;
+            border: 0;
+            border-radius: 8px;
+            background: var(--accent);
+            color: #fff;
+            padding: 10px 28px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+          }
+        `}</style>
+      </main>
+    );
   }
 
   return (
@@ -225,8 +390,6 @@ export default function Home() {
             </button>
           ))}
         </section>
-
-        {error && <p className="error">{error}</p>}
 
         <section className="sectionTitle">
           <h2>演算法總覽</h2>

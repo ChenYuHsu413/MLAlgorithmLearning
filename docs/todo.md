@@ -84,7 +84,7 @@ Generated: 2026-06-09
 ### 4-3. Loading States
 - [ ] Add skeleton loading cards while algorithm data is fetching from the backend
 - [ ] Add a spinner or placeholder in the visualization panel on initial load
-- [ ] Handle API-down state gracefully with a friendly error message
+- [x] Handle API-down / cold start state gracefully — spinner while loading, cloud icon + auto-retry every 10s when backend is warming up (Render free tier)
 
 ---
 
