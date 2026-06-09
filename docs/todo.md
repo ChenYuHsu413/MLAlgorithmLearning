@@ -88,69 +88,57 @@ Generated: 2026-06-09
 
 ---
 
-## Phase 5 — Interactive Algorithm Labs（仿線性迴歸實驗室）
-
-為剩餘 9 個演算法各建立互動模擬實驗室，仿照 `LinearRegressionLab.jsx` 的架構：
-後端新增 API 端點生成玩具資料並執行演算法，前端以滑桿控制超參數，SVG 即時顯示結果。
-
-**建議順序：先易後難**
+## Phase 5 — Interactive Algorithm Labs ✅ DONE
 
 ### 5-1. 簡單（散佈圖 + 分類邊界 / 群組）
 
-- [ ] **邏輯迴歸實驗室（LogisticRegressionLab）**
-  - 後端：生成二元分類資料，回傳決策邊界座標
-  - 前端：散佈圖 + 可調決策閾值滑桿 + 邊界線
-  - 新增端點：`POST /api/simulate-logistic-regression`
-
-- [ ] **KNN 實驗室（KNNLab）**
-  - 後端：生成分類資料，回傳 K 個最近鄰的座標與預測結果
-  - 前端：散佈圖 + K 滑桿 + 高亮最近鄰 + 分類區域色塊
-  - 新增端點：`POST /api/simulate-knn`
-
-- [ ] **K-Means 實驗室（KMeansLab）**
-  - 後端：生成 blob 資料，回傳各點群組標籤 + 群中心座標（逐輪或最終）
-  - 前端：散佈圖 + K 滑桿 + 群中心標記 + 顏色分群
-  - 新增端點：`POST /api/simulate-kmeans`
-
-- [ ] **樸素貝葉斯實驗室（NaiveBayesLab）**
-  - 後端：生成二元分類資料，回傳每個類別的 Gaussian 分布參數（μ, σ）
-  - 前端：兩條高斯曲線 SVG + 可調先驗機率滑桿 + 決策點標示
-  - 新增端點：`POST /api/simulate-naive-bayes`
+- [x] **邏輯迴歸實驗室（LogisticRegressionLab，id=1）** — 門檻值滑桿 + 即時混淆矩陣
+- [x] **KNN 實驗室（KNNLab，id=5）** — 26×26 客戶端決策網格 + K 滑桿 + 最近鄰連線
+- [x] **K-Means 實驗室（KMeansLab，id=7）** — K 滑桿 + ✕ 群心 + Silhouette Score
+- [x] **樸素貝葉斯實驗室（NaiveBayesLab，id=6）** — 高斯曲線 + Prior 滑桿移動邊界
 
 ### 5-2. 中等（需要額外視覺設計）
 
-- [ ] **SVM 實驗室（SVMLab）**
-  - 後端：回傳決策邊界 + 支持向量座標 + margin 寬度
-  - 前端：散佈圖 + C 滑桿 + 邊界線 + margin 帶狀區域 + 支持向量標示
-  - 新增端點：`POST /api/simulate-svm`
-
-- [ ] **隨機森林實驗室（RandomForestLab）**
-  - 後端：回傳 accuracy vs n_estimators 曲線資料 + 特徵重要度
-  - 前端：折線圖（準確率趨勢）+ 特徵重要度橫條圖 + n_estimators 滑桿
-  - 新增端點：`POST /api/simulate-random-forest`
-
-- [ ] **PCA 實驗室（PCALab）**
-  - 後端：生成高維資料，回傳 2D 投影座標 + 各主成分解釋變異
-  - 前端：原始資料 vs 投影後散佈圖 + n_components 滑桿 + 解釋變異長條圖
-  - 新增端點：`POST /api/simulate-pca`
+- [x] **SVM 實驗室（SVMLab，id=4）** — C 預設按鈕 + margin band + 支援向量高亮
+- [x] **隨機森林實驗室（RandomForestLab，id=3）** — 準確率曲線 + Top-5 特徵重要性
+- [x] **PCA 實驗室（PCALab，id=8）** — PC1/PC2 散點 + EVR 長條圖 + n_components 滑桿
 
 ### 5-3. 複雜（需客製化視覺化）
 
-- [ ] **決策樹實驗室（DecisionTreeLab）**
-  - 後端：回傳 2D 特徵空間的分割區域（矩形邊界）+ 各區域預測類別
-  - 前端：2D 特徵空間色塊（partition grid）+ max_depth 滑桿
-  - 新增端點：`POST /api/simulate-decision-tree`
+- [x] **決策樹實驗室（DecisionTreeLab，id=2）** — SVG 互動樹狀圖 + hover tooltip
+- [x] **神經網路實驗室（NeuralNetworkLab，id=9）** — 30×30 熱圖邊界 + 架構 SVG 圖
 
-- [ ] **神經網路實驗室（NeuralNetworkLab）**
-  - 後端：MLPClassifier 訓練，回傳每個 epoch 的 loss / accuracy + 最終 2D 決策邊界
-  - 前端：loss 曲線折線圖 + 2D 決策邊界散佈圖 + hidden_size 滑桿
-  - 新增端點：`POST /api/simulate-neural-network`
+---
+
+## Phase 6 — Bug Fixes（Code Review 發現）
+
+從 Phase 5 的 7 角度程式碼審查確認以下問題，尚待修復：
+
+- [ ] **🔴 `recurse()` 葉節點偵測錯誤**（`backend/main.py`）
+  - 改 `node == _tree.TREE_LEAF` → `tree.children_left[node] == _tree.TREE_LEAF`
+  - 影響：決策樹 SVG 圖所有葉節點顯示錯誤的類別/樣本數/Gini
+
+- [ ] **🔴 `flattenTree` 節點重疊**（`frontend/components/DecisionTreeLab.jsx`）
+  - 深度 ≥ 2 即重疊（30px 間距 < 36px 直徑），深度 8 僅 0.47px
+  - 需改用後序賦值算法，保證最小間距 ≥ 2×NODE_R
+
+- [ ] **🟡 5 個新實驗室缺少 error state**（SVMLab、DecisionTreeLab、NeuralNetworkLab、RandomForestLab、PCALab）
+  - 參照 KMeansLab 模式：加 `catch` block、`error` state、錯誤訊息顯示
+
+- [ ] **🟡 決策樹 tooltip z-order 問題**（`frontend/components/DecisionTreeLab.jsx`）
+  - tooltip 渲染在節點 `<g>` 內部，被後繪子節點遮蓋
+  - 修法：將 active tooltip 移至 SVG 頂層 `<g>`（最後渲染）
+
+- [ ] **🟡 NeuralNetworkLab 競態條件**（`frontend/components/NeuralNetworkLab.jsx`）
+  - 預設按鈕缺少 `disabled={loading}` 守衛，快速點擊產生亂序回應
+  - 加 `disabled={loading}` 或 AbortController
+
+- [ ] **🟢 `simulate_random_forest` 冗餘模型**（`backend/main.py`）
+  - 移除第 12 個 n=200 模型，直接從迴圈最後一個 `m` 提取 `importances`
 
 ---
 
 ## Notes
 
-- **Priority order:** Phase 1 → Phase 2 → Phase 3 → Phase 4
-- Phase 2 has the highest impact on the core goal: helping visitors "really learn ML"
-- Phase 4's real code execution is the most technically complex but also the most impressive feature
-- Phase 5 builds on Phase 4's `/api/run-code` pattern; start with 5-1 (easy) before 5-2 and 5-3
+- **Priority order:** Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6
+- Phase 6 bug fixes ranked: 🔴 = 影響展示正確性（優先）、🟡 = 影響使用體驗、🟢 = 效能/維護性
