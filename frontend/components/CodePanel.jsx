@@ -1,4 +1,6 @@
-export default function CodePanel({ activeExample, active, codeOutput, onExecute, onShowDetails }) {
+export default function CodePanel({ activeExample, active, paramDef, paramValue, onParamChange, isRunning, codeOutput, onExecute, onShowDetails }) {
+  const currentVal = paramValue ?? paramDef?.defaultVal;
+
   return (
     <article id="examples" className="panel codePanel">
       <div className="panelHeader">
@@ -12,7 +14,26 @@ export default function CodePanel({ activeExample, active, codeOutput, onExecute
         {activeExample.steps.map((step) => <li key={step}>{step}</li>)}
       </ol>
       <pre>{activeExample.code}</pre>
-      <button type="button" className="runCodeButton" onClick={onExecute}>執行程式碼</button>
+      {paramDef && (
+        <div className="paramControl">
+          <div className="paramRow">
+            <label className="paramLabel">{paramDef.label}</label>
+            <span className="paramVal">{currentVal}</span>
+          </div>
+          <input
+            type="range"
+            className="paramSlider"
+            min={paramDef.min}
+            max={paramDef.max}
+            step={paramDef.step}
+            value={currentVal}
+            onChange={(e) => onParamChange(Number(e.target.value))}
+          />
+        </div>
+      )}
+      <button type="button" className="runCodeButton" onClick={onExecute} disabled={isRunning}>
+        {isRunning ? '執行中…' : '執行程式碼'}
+      </button>
       {codeOutput && (
         <div className="codeOutput" aria-live="polite">
           <strong>{codeOutput.title}</strong>
@@ -68,6 +89,37 @@ export default function CodePanel({ activeExample, active, codeOutput, onExecute
           line-height: 1.6;
           font-size: 0.82rem;
         }
+        .paramControl {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 10px 12px;
+          margin-bottom: 10px;
+          background: var(--surface-soft, var(--surface));
+        }
+        .paramRow {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+        }
+        .paramLabel {
+          font-size: 0.82rem;
+          color: var(--muted-strong);
+          font-weight: 600;
+        }
+        .paramVal {
+          font-size: 0.92rem;
+          font-weight: 800;
+          color: var(--accent);
+          font-family: Consolas, monospace;
+          min-width: 36px;
+          text-align: right;
+        }
+        .paramSlider {
+          width: 100%;
+          cursor: pointer;
+          accent-color: var(--accent);
+        }
         .runCodeButton {
           width: 100%;
           border: 0;
@@ -79,6 +131,10 @@ export default function CodePanel({ activeExample, active, codeOutput, onExecute
           font: inherit;
           font-weight: 800;
           margin-bottom: 10px;
+        }
+        .runCodeButton:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
         .codeOutput {
           display: grid;

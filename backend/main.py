@@ -1,13 +1,26 @@
 import os
 import json
 import asyncio
+import time
 import numpy as np
-from sklearn.linear_model import LinearRegression as SklearnLR
+from sklearn.linear_model import LinearRegression as SklearnLR, LogisticRegression as SklearnLGR
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.neural_network import MLPClassifier
+from sklearn.datasets import make_regression, make_classification, make_blobs
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, f1_score, mean_squared_error, r2_score, silhouette_score
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
 import google.generativeai as genai
 
@@ -526,6 +539,196 @@ def simulate_linear_regression(data: SimulateLinearRegressionInput):
         "outlier_indices": top10_idx,
         "residuals": [round(float(v), 3) for v in residuals],
     }
+
+
+class RunCodeInput(BaseModel):
+    algorithm_id: int
+    params: dict = {}
+
+
+@app.post("/api/run-code")
+def run_code(data: RunCodeInput):
+    aid = data.algorithm_id
+    params = data.params
+    start = time.time()
+
+    def elapsed_ms():
+        return f"{(time.time() - start) * 1000:.1f} ms"
+
+    try:
+        if aid == 0:
+            X, y = make_regression(n_samples=200, n_features=3, noise=20, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = SklearnLR()
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
+            r2 = float(r2_score(y_test, preds))
+            return {"lines": [
+                "模型完成訓練（make_regression，200 樣本，3 特徵）",
+                f"RMSE: {rmse:.4f}",
+                f"R-squared: {r2:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 1:
+            max_iter = int(params.get("max_iter", 1000))
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = SklearnLGR(max_iter=max_iter, random_state=42)
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            acc = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds)
+            return {"lines": [
+                f"模型完成訓練（make_classification，200 樣本，max_iter={max_iter}）",
+                f"Accuracy: {acc:.4f}",
+                f"F1-score: {f1:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 2:
+            max_depth = int(params.get("max_depth", 4))
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            acc = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds)
+            actual_depth = model.get_depth()
+            return {"lines": [
+                f"決策樹已建立（max_depth={max_depth}，實際深度={actual_depth}）",
+                f"Accuracy: {acc:.4f}",
+                f"F1-score: {f1:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 3:
+            n_est = int(params.get("n_estimators", 100))
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = RandomForestClassifier(n_estimators=n_est, random_state=42)
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            acc = accuracy_score(y_test, preds)
+            top_idx = int(np.argmax(model.feature_importances_))
+            top_imp = float(model.feature_importances_[top_idx])
+            return {"lines": [
+                f"森林投票完成（{n_est} 棵決策樹）",
+                f"Accuracy: {acc:.4f}",
+                f"最重要特徵: feature_{top_idx}（重要度 {top_imp:.3f}）",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 4:
+            C = float(params.get("C", 1.0))
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            scaler = StandardScaler()
+            model = SVC(kernel="rbf", C=C, gamma="scale", random_state=42)
+            model.fit(scaler.fit_transform(X_train), y_train)
+            preds = model.predict(scaler.transform(X_test))
+            acc = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds)
+            n_sv = int(np.sum(model.n_support_))
+            return {"lines": [
+                f"最佳分隔超平面已更新（RBF kernel，C={C}）",
+                f"Accuracy: {acc:.4f}",
+                f"F1-score: {f1:.4f}",
+                f"支持向量數: {n_sv}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 5:
+            k = int(params.get("n_neighbors", 5))
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            scaler = StandardScaler()
+            model = KNeighborsClassifier(n_neighbors=k)
+            model.fit(scaler.fit_transform(X_train), y_train)
+            preds = model.predict(scaler.transform(X_test))
+            acc = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds)
+            return {"lines": [
+                f"鄰近點搜尋完成（K={k}）",
+                f"Accuracy: {acc:.4f}",
+                f"F1-score: {f1:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 6:
+            X, y = make_classification(n_samples=200, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            model = GaussianNB()
+            model.fit(X_train, y_train)
+            preds = model.predict(X_test)
+            acc = accuracy_score(y_test, preds)
+            f1 = f1_score(y_test, preds)
+            return {"lines": [
+                "機率表已估計（GaussianNB，200 樣本）",
+                f"Accuracy: {acc:.4f}",
+                f"F1-score: {f1:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 7:
+            n_clusters = int(params.get("n_clusters", 4))
+            X, _ = make_blobs(n_samples=200, centers=4, random_state=42)
+            X_scaled = StandardScaler().fit_transform(X)
+            model = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
+            labels = model.fit_predict(X_scaled)
+            inertia = float(model.inertia_)
+            sil = float(silhouette_score(X_scaled, labels)) if n_clusters > 1 else 0.0
+            return {"lines": [
+                f"群中心重新配置完成（K={n_clusters}）",
+                f"Inertia: {inertia:.2f}",
+                f"Silhouette Score: {sil:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 8:
+            n_comp = int(params.get("n_components", 2))
+            X, _ = make_classification(n_samples=200, n_features=20, n_informative=8, random_state=42)
+            X_scaled = StandardScaler().fit_transform(X)
+            n_comp = min(n_comp, X_scaled.shape[1])
+            pca = PCA(n_components=n_comp)
+            pca.fit_transform(X_scaled)
+            evr = pca.explained_variance_ratio_
+            total_var = float(np.sum(evr) * 100)
+            evr_str = ", ".join([f"{v*100:.1f}%" for v in evr])
+            return {"lines": [
+                f"投影完成（{n_comp} 個主成分，原始 20 維）",
+                f"各成分解釋變異: {evr_str}",
+                f"總解釋變異: {total_var:.1f}%",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        elif aid == 9:
+            hidden = int(params.get("hidden_size", 64))
+            X, y = make_classification(n_samples=300, n_features=10, random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+            scaler = StandardScaler()
+            model = MLPClassifier(hidden_layer_sizes=(hidden,), max_iter=200, random_state=42)
+            model.fit(scaler.fit_transform(X_train), y_train)
+            preds = model.predict(scaler.transform(X_test))
+            acc = accuracy_score(y_test, preds)
+            loss = float(model.loss_)
+            n_iter = model.n_iter_
+            return {"lines": [
+                f"神經網路訓練完成（隱藏層={hidden} 神經元，{n_iter} 輪）",
+                f"Accuracy: {acc:.4f}",
+                f"Training Loss: {loss:.4f}",
+                f"執行時間: {elapsed_ms()}",
+            ]}
+
+        else:
+            raise HTTPException(status_code=400, detail="Invalid algorithm_id")
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"執行失敗: {str(e)}")
 
 
 SYSTEM_PROMPT_MOCK = (

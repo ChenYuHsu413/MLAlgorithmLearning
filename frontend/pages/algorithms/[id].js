@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { implementationExamples, executionResults } from '../../lib/algorithmData';
+import { implementationExamples, executionResults, codeParams } from '../../lib/algorithmData';
 import VisualPanel from '../../components/VisualPanel';
 import CodePanel from '../../components/CodePanel';
 import QuizPanel from '../../components/QuizPanel';
@@ -20,6 +20,8 @@ export default function AlgorithmPage() {
   const [simulationRun, setSimulationRun] = useState(0);
   const [simulationStatus, setSimulationStatus] = useState('尚未開始模擬');
   const [codeOutput, setCodeOutput] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [paramValue, setParamValue] = useState(null);
   const [answers, setAnswers] = useState(() => {
     if (typeof window === 'undefined') return {};
     try {
@@ -80,12 +82,36 @@ export default function AlgorithmPage() {
     setSimulationStatus(`${algorithm.shortName}：${action}`);
   }
 
-  function executeCode() {
+  useEffect(() => {
+    if (numId === null) return;
+    const def = codeParams[numId];
+    setParamValue(def ? def.defaultVal : null);
+    setCodeOutput(null);
+  }, [numId]);
+
+  async function executeCode() {
     if (!algorithm || numId === null) return;
-    setCodeOutput({
-      title: `${algorithm.shortName} 執行結果`,
-      lines: executionResults[numId] || ['程式碼執行完成', 'Result: ok'],
-    });
+    setIsRunning(true);
+    setCodeOutput(null);
+    const def = codeParams[numId];
+    const params = def ? { [def.key]: paramValue ?? def.defaultVal } : {};
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/run-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ algorithm_id: numId, params }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      setCodeOutput({ title: `${algorithm.shortName} 執行結果（scikit-learn）`, lines: data.lines });
+    } catch {
+      setCodeOutput({
+        title: `${algorithm.shortName} 執行結果`,
+        lines: executionResults[numId] || ['程式碼執行完成', 'Result: ok'],
+      });
+    } finally {
+      setIsRunning(false);
+    }
   }
 
   const activeExample = numId !== null ? implementationExamples[numId] : null;
@@ -153,6 +179,10 @@ export default function AlgorithmPage() {
           <CodePanel
             activeExample={activeExample}
             active={algorithm}
+            paramDef={numId !== null ? codeParams[numId] : null}
+            paramValue={paramValue}
+            onParamChange={setParamValue}
+            isRunning={isRunning}
             codeOutput={codeOutput}
             onExecute={executeCode}
             onShowDetails={() => {}}

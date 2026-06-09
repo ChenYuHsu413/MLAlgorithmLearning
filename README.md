@@ -18,7 +18,7 @@
 - **十大演算法學習卡片**：搜尋、分類篩選（監督式、非監督式、集成、深度學習）
 - **互動式視覺化**：SVG 動畫（每個演算法 5 幀），含圖例說明與核心數學公式
 - **小測驗系統**：每個演算法 3 題（易→中→難），附解題說明，進度存入 localStorage，可重置
-- **程式碼實作範例**：10 個演算法的 scikit-learn / TensorFlow 程式碼
+- **程式碼實作範例 + 真實執行**：10 個演算法的 scikit-learn / TensorFlow 程式碼，可調超參數（如 K 值、樹深、神經元數）並即時執行，顯示真實 Accuracy / F1 / Silhouette 等指標與執行時間
 - **推薦學習路徑**：入門 → 中階 → 進階排序導引
 - **演算法關係圖**：SVG 互動圖顯示演算法演進脈絡（分類變體、集成擴展、單層類比），節點可點擊跳轉
 - **深度演算法頁面**：每個演算法有獨立 URL（`/algorithms/[id]`），含完整視覺化、測驗、程式碼與深度解析，支援分享與收藏
@@ -72,6 +72,7 @@
 | :--- | :--- | :--- |
 | `/api/algorithms` | GET | 取得所有 10 個演算法的完整資料 |
 | `/api/algorithms/{id}` | GET | 取得單一演算法詳細資料 |
+| `/api/run-code` | POST | 依 `algorithm_id` 與超參數 `params` 執行真實 scikit-learn 模型，回傳指標與執行時間 |
 | `/api/run-linear-regression` | POST | 對使用者提供的 (x, y) 點組執行線性迴歸 |
 | `/api/simulate-linear-regression` | POST | 依 n, a, b, σ² 參數生成模擬資料並執行迴歸，回傳離群點 |
 | `/ws/ai-chat` | WebSocket | AI 助教即時串流問答 |

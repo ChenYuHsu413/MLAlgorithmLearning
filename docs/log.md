@@ -169,6 +169,73 @@ git push
 # commit: f7d5d26
 ```
 
+## Session 10 — 2026-06-09｜Phase 4-1 Real Code Execution
+
+### 目標
+將 CodePanel 的假輸出（hardcoded mock）替換為真實 scikit-learn 執行結果，並新增可調整的超參數滑桿。
+
+### 後端：新增 POST /api/run-code
+```python
+# backend/main.py 新增 sklearn imports
+#   time, LogisticRegression, DecisionTreeClassifier, RandomForestClassifier,
+#   SVC, KNeighborsClassifier, GaussianNB, KMeans, PCA, StandardScaler,
+#   MLPClassifier, make_regression, make_classification, make_blobs,
+#   train_test_split, accuracy_score, f1_score, mean_squared_error, r2_score,
+#   silhouette_score
+#
+# class RunCodeInput(BaseModel):
+#     algorithm_id: int
+#     params: dict = {}
+#
+# POST /api/run-code
+#   - 根據 algorithm_id 對應 sklearn 模型
+#   - 使用 make_regression / make_classification / make_blobs toy dataset
+#   - 回傳 lines: List[str]（真實指標 + 執行時間）
+#   - 支援可調整超參數：max_iter, max_depth, n_estimators, C, n_neighbors,
+#                       n_clusters, n_components, hidden_size
+```
+
+### 前端：algorithmData.js
+```js
+// 新增 codeParams export：每個演算法一個可調超參數定義
+// { key, label, min, max, step, defaultVal }
+// 演算法 0（線性迴歸）和 6（樸素貝葉斯）為 null（無需調整）
+```
+
+### 前端：CodePanel.jsx
+```jsx
+// 新增 props：paramDef, paramValue, onParamChange, isRunning
+// 新增 <div className="paramControl"> 滑桿（只在 paramDef !== null 時顯示）
+// 執行按鈕：disabled + 文字改為「執行中…」時禁用
+// 新增 CSS：.paramControl, .paramRow, .paramLabel, .paramVal,
+//           .paramSlider, .runCodeButton:disabled
+```
+
+### 前端：index.js + [id].js
+```js
+// import codeParams from algorithmData
+// 新增 state: isRunning, paramValue
+// useEffect：active.id 改變時重設 paramValue 為預設值、清空 codeOutput
+// executeCode() 改為 async：
+//   fetch(`${API_BASE_URL}/api/run-code`, { method: 'POST', body: ... })
+//   成功 → codeOutput.title 加「（scikit-learn）」
+//   失敗 → fallback 到舊 executionResults mock
+// CodePanel 新增 paramDef, paramValue, onParamChange, isRunning props
+```
+
+### Git 提交
+```bash
+git add backend/main.py \
+        frontend/lib/algorithmData.js \
+        frontend/components/CodePanel.jsx \
+        frontend/pages/index.js \
+        "frontend/pages/algorithms/[id].js" \
+        docs/log.md docs/工作報告.md README.md
+
+git commit -m "feat: Phase 4-1 — real code execution with scikit-learn, tunable params per algorithm"
+git push
+```
+
 ---
 
 ## 1. 系統診斷與除錯指令

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { reportGuide } from '../lib/algorithmReport';
-import { implementationExamples, filters, executionResults, chartType } from '../lib/algorithmData';
+import { implementationExamples, filters, executionResults, chartType, codeParams } from '../lib/algorithmData';
 import AIChatbot from '../components/AIChatbot';
 import MiniChart from '../components/MiniChart';
 import HeroIllustration from '../components/HeroIllustration';
@@ -32,6 +32,8 @@ export default function Home() {
   const [simulationRun, setSimulationRun] = useState(0);
   const [simulationStatus, setSimulationStatus] = useState('尚未開始模擬');
   const [codeOutput, setCodeOutput] = useState(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [paramValue, setParamValue] = useState(null);
   const [learningNotice, setLearningNotice] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
@@ -153,12 +155,35 @@ export default function Home() {
     setSimulationStatus(`${active.shortName}：${action}`);
   }
 
-  function executeCode() {
+  useEffect(() => {
+    const def = active ? codeParams[active.id] : null;
+    setParamValue(def ? def.defaultVal : null);
+    setCodeOutput(null);
+  }, [active?.id]);
+
+  async function executeCode() {
     if (!active) return;
-    setCodeOutput({
-      title: `${active.shortName} 執行結果`,
-      lines: executionResults[active.id] || ['程式碼執行完成', 'Result: ok'],
-    });
+    setIsRunning(true);
+    setCodeOutput(null);
+    const def = codeParams[active.id];
+    const params = def ? { [def.key]: paramValue ?? def.defaultVal } : {};
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/run-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ algorithm_id: active.id, params }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      setCodeOutput({ title: `${active.shortName} 執行結果（scikit-learn）`, lines: data.lines });
+    } catch {
+      setCodeOutput({
+        title: `${active.shortName} 執行結果`,
+        lines: executionResults[active.id] || ['程式碼執行完成', 'Result: ok'],
+      });
+    } finally {
+      setIsRunning(false);
+    }
   }
 
   if (loading && algorithms.length === 0) {
@@ -460,6 +485,10 @@ export default function Home() {
             <CodePanel
               activeExample={activeExample}
               active={active}
+              paramDef={active ? codeParams[active.id] : null}
+              paramValue={paramValue}
+              onParamChange={setParamValue}
+              isRunning={isRunning}
               codeOutput={codeOutput}
               onExecute={executeCode}
               onShowDetails={() => setShowDetails(true)}

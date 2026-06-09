@@ -171,6 +171,19 @@ model.fit(x_train, y_train, epochs=8, validation_split=0.2)`,
 
 export const filters = ['全部', '監督式', '非監督式', '集成', '深度學習'];
 
+export const codeParams = {
+  0: null,
+  1: { key: 'max_iter',     label: '最大迭代次數',      min: 100, max: 2000, step: 100, defaultVal: 1000 },
+  2: { key: 'max_depth',    label: '最大樹深',          min: 2,   max: 10,   step: 1,   defaultVal: 4    },
+  3: { key: 'n_estimators', label: '決策樹數量',        min: 10,  max: 300,  step: 10,  defaultVal: 100  },
+  4: { key: 'C',            label: '懲罰係數 C',        min: 1,   max: 10,   step: 1,   defaultVal: 1    },
+  5: { key: 'n_neighbors',  label: 'K 值（鄰居數）',    min: 1,   max: 20,   step: 1,   defaultVal: 5    },
+  6: null,
+  7: { key: 'n_clusters',   label: '群數 K',            min: 2,   max: 8,    step: 1,   defaultVal: 4    },
+  8: { key: 'n_components', label: '主成分數量',        min: 1,   max: 10,   step: 1,   defaultVal: 2    },
+  9: { key: 'hidden_size',  label: '隱藏層神經元數',    min: 16,  max: 256,  step: 16,  defaultVal: 64   },
+};
+
 export const executionResults = {
   0: ['模型完成訓練', 'RMSE: 18423.7', '預測價格: [312000, 428500, 515200]'],
   1: ['模型完成訓練', 'Accuracy: 0.91', 'Spam probability: 0.82'],
