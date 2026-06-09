@@ -9,6 +9,8 @@ import CodePanel from '../components/CodePanel';
 import QuizPanel from '../components/QuizPanel';
 import DetailModal from '../components/DetailModal';
 import LinearRegressionLab from '../components/LinearRegressionLab';
+import OnboardingModal from '../components/OnboardingModal';
+import AlgorithmRelationshipMap from '../components/AlgorithmRelationshipMap';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -346,7 +348,16 @@ export default function Home() {
           <section className="progressPanel">
             <div className="progressHeader">
               <h3>測驗進度</h3>
-              <span>{done} / {algorithms.length} 完成</span>
+              <div className="progressHeaderRight">
+                <span>{done} / {algorithms.length} 完成</span>
+                <button
+                  type="button"
+                  className="resetBtn"
+                  onClick={() => { if (typeof window !== 'undefined') window.confirm('確定要重置所有測驗進度嗎？') && setAnswers({}); }}
+                >
+                  重置進度
+                </button>
+              </div>
             </div>
             <div className="progressGrid">
               {algorithms.map((algo) => {
@@ -431,6 +442,8 @@ export default function Home() {
             </button>
           ))}
         </section>
+
+        <AlgorithmRelationshipMap onSelect={startLearning} />
 
         {learningNotice && <p className="learningNotice">{learningNotice}</p>}
 
@@ -569,6 +582,7 @@ export default function Home() {
         activeInsight={activeInsight}
         onClose={() => setShowDetails(false)}
       />
+      <OnboardingModal />
       <AIChatbot activeAlgorithmName={active?.name} />
 
       <style jsx>{`
@@ -1217,10 +1231,30 @@ export default function Home() {
           margin: 0;
           font-size: 1rem;
         }
-        .progressHeader span {
+        .progressHeaderRight {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .progressHeaderRight span {
           color: var(--accent);
           font-weight: 700;
           font-size: 0.9rem;
+        }
+        .resetBtn {
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          background: var(--surface-soft);
+          color: var(--muted);
+          padding: 5px 10px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 0.8rem;
+        }
+        .resetBtn:hover {
+          border-color: #fca5a5;
+          color: #dc2626;
+          background: rgba(254, 226, 226, 0.4);
         }
         .progressGrid {
           display: grid;

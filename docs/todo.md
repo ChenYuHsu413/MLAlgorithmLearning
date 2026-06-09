@@ -42,30 +42,30 @@ Generated: 2026-06-09
 
 ---
 
-## Phase 3 — UX / UI Improvements
+## Phase 3 — UX / UI Improvements ✅ DONE
 
 ### 3-1. Onboarding for First-Time Visitors
-- [ ] Add a "How to use this platform" tooltip/walkthrough on first visit
-- [ ] Briefly explain the 3-panel layout (Visualization | Code | Quiz)
-- [ ] Save "onboarding seen" flag to localStorage so it only shows once
+- [x] Add a "How to use this platform" tooltip/walkthrough on first visit
+- [x] Briefly explain the 3-panel layout (Visualization | Code | Quiz)
+- [x] Save "onboarding seen" flag to localStorage so it only shows once
 
 ### 3-2. Algorithm Relationship Map
-- [ ] Create a visual diagram showing how algorithms relate
+- [x] Create a visual diagram showing how algorithms relate
   - e.g., Random Forest builds on Decision Tree; Logistic Regression is classification variant of Linear Regression
-- [ ] Place it on the homepage below the algorithm cards
-- [ ] Make nodes clickable to jump to that algorithm
+- [x] Place it on the homepage below the algorithm cards
+- [x] Make nodes clickable to jump to that algorithm
 
 ### 3-3. Progress Tracking Dashboard
-- [ ] Show "X / 10 algorithms studied" with a progress bar
-- [ ] Show per-algorithm quiz score history
-- [ ] Add a "Reset Progress" button (clears localStorage)
-- [ ] Optionally show estimated learning time remaining
+- [x] Show "X / 10 algorithms studied" with a progress bar
+- [x] Show per-algorithm quiz score history
+- [x] Add a "Reset Progress" button (clears localStorage)
+- [ ] Optionally show estimated learning time remaining (skipped — optional)
 
 ### 3-4. Enhance Individual Algorithm Pages (`/algorithms/[id]`)
-- [ ] Currently these pages are thin fallbacks — turn them into full deep-dive pages
-- [ ] Add full visualization, extended quiz (3–5 questions), and code examples
-- [ ] Make pages shareable and bookmarkable (good for students sending links)
-- [ ] Add proper SEO meta tags (title, description) per algorithm page
+- [x] Currently these pages are thin fallbacks — turn them into full deep-dive pages
+- [x] Add full visualization, extended quiz (3–5 questions), and code examples
+- [x] Make pages shareable and bookmarkable (good for students sending links)
+- [x] Add proper SEO meta tags (title, description) per algorithm page
 
 ---
 
