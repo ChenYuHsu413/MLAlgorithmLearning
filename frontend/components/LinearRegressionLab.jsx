@@ -6,7 +6,7 @@ const PARAM_DEFAULTS = { n: 80, a: 3, b: 30, var: 60 };
 
 function buildChart(result) {
   const PAD = { top: 32, right: 32, bottom: 52, left: 64 };
-  const W = 540, H = 360;
+  const W = 420, H = 420;
   const cW = W - PAD.left - PAD.right;
   const cH = H - PAD.top - PAD.bottom;
 
@@ -193,7 +193,7 @@ export default function LinearRegressionLab() {
               </div>
 
               <div className="svgWrap">
-                <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="simChart" style={{maxHeight: '300px'}}>
+                <svg viewBox={`0 0 ${chart.W} ${chart.H}`} className="simChart">
                   {/* grid */}
                   {chart.yTicks.map((t, i) => (
                     <line key={i}
@@ -253,24 +253,24 @@ export default function LinearRegressionLab() {
                     stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"
                   />
 
-                  {/* outlier drop-lines (drawn before circles so circles sit on top) */}
+                  {/* outlier drop-lines */}
                   {result.outlier_indices.map((idx) => (
                     <line key={`dl-${idx}`}
                       x1={chart.toX(result.x_values[idx])} y1={chart.toY(result.y_values[idx])}
                       x2={chart.toX(result.x_values[idx])} y2={chart.toY(result.fitted_slope * result.x_values[idx] + result.fitted_intercept)}
-                      stroke="#fb923c" strokeWidth="2" opacity="0.9"
+                      stroke="#facc15" strokeWidth="2" opacity="0.85"
                     />
                   ))}
 
-                  {/* outlier points — glow ring + filled circle + rank number */}
+                  {/* outlier points — bright yellow, glow ring + rank number */}
                   {result.outlier_indices.map((idx, rank) => {
                     const cx = chart.toX(result.x_values[idx]);
                     const cy = chart.toY(result.y_values[idx]);
                     return (
                       <g key={`ol-${idx}`}>
-                        <circle cx={cx} cy={cy} r="15" fill="#f97316" opacity="0.18" />
-                        <circle cx={cx} cy={cy} r="10" fill="#f97316" stroke="#fff" strokeWidth="2" />
-                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="800" fill="#fff">
+                        <circle cx={cx} cy={cy} r="16" fill="#facc15" opacity="0.2" />
+                        <circle cx={cx} cy={cy} r="10" fill="#facc15" stroke="#1e1e1e" strokeWidth="2" />
+                        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="800" fill="#1e1e1e">
                           {rank + 1}
                         </text>
                       </g>
@@ -303,13 +303,14 @@ export default function LinearRegressionLab() {
           border: 1px solid var(--line); border-radius: 12px;
           background: var(--surface); padding: 24px;
           box-shadow: 0 8px 24px var(--shadow); margin-top: 24px;
+          max-width: 780px;
         }
         .lrHeader h3 { margin: 0 0 4px; font-size: 1.1rem; }
         .lrHeader p { margin: 0 0 0; color: var(--muted); font-size: 0.86rem; }
 
         .lrBody {
           display: grid;
-          grid-template-columns: 300px minmax(0, 1fr);
+          grid-template-columns: 300px 420px;
           gap: 28px; align-items: start; margin-top: 20px;
         }
 
@@ -380,7 +381,7 @@ export default function LinearRegressionLab() {
         .chartLegend span { display: flex; align-items: center; gap: 5px; }
         .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
         .dot.blue { background: #64748b; opacity: 0.7; }
-        .dot.orange.big { background: #f97316; width: 16px; height: 16px; border: 2px solid #fff; box-shadow: 0 0 0 3px rgba(249,115,22,0.25); }
+        .dot.orange.big { background: #facc15; width: 16px; height: 16px; border: 2px solid #1e1e1e; box-shadow: 0 0 0 3px rgba(250,204,21,0.3); }
         .line { display: inline-block; width: 22px; height: 3px; border-radius: 2px; }
         .line.blue { background: #3b82f6; }
         .line.blue.dashed { background: repeating-linear-gradient(90deg, #3b82f6 0 5px, transparent 5px 9px); }
@@ -401,12 +402,12 @@ export default function LinearRegressionLab() {
           display: grid; grid-template-columns: 30px 1fr 1fr 1fr;
           gap: 6px; align-items: center;
           font-size: 0.78rem; color: var(--muted);
-          border: 1px solid #fed7aa; border-radius: 6px;
-          background: #fff7ed; padding: 6px 10px;
+          border: 1px solid var(--line); border-radius: 6px;
+          background: var(--surface-soft); padding: 6px 10px;
         }
         .outlierItem b { color: var(--text); }
-        .outlierRank { font-weight: 800; color: #ea580c; font-size: 0.75rem; }
-        .outlierResid { font-weight: 700; color: #c2410c; }
+        .outlierRank { font-weight: 800; color: #ca8a04; font-size: 0.75rem; }
+        .outlierResid { font-weight: 700; color: #ca8a04; }
 
         @media (max-width: 960px) {
           .lrBody { grid-template-columns: 1fr; }
