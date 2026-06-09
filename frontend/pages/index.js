@@ -478,11 +478,13 @@ export default function Home() {
         {active?.id === 5 && <KNNLab />}
         {active?.id === 6 && <NaiveBayesLab />}
         {active?.id === 7 && <KMeansLab />}
-        {active?.id === 4 && <SVMLab />}
-        {active?.id === 3 && <RandomForestLab />}
-        {active?.id === 8 && <PCALab />}
-        {active?.id === 2 && <DecisionTreeLab />}
-        {active?.id === 9 && <NeuralNetworkLab />}
+        <div className="tailwindLab">
+          {active?.id === 4 && <SVMLab />}
+          {active?.id === 3 && <RandomForestLab />}
+          {active?.id === 8 && <PCALab />}
+          {active?.id === 2 && <DecisionTreeLab />}
+          {active?.id === 9 && <NeuralNetworkLab />}
+        </div>
 
         {active && (() => {
           const currentIndex = algorithms.findIndex((a) => a.id === activeId);
@@ -1034,6 +1036,10 @@ export default function Home() {
           margin: -4px 0 14px;
           font-weight: 800;
           box-shadow: 0 8px 20px var(--shadow);
+        }
+        .tailwindLab {
+          max-width: 960px;
+          padding: 0 0 24px;
         }
         .labGrid {
           display: grid;
