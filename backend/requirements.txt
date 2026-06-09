@@ -6,3 +6,5 @@ openai
 python-dotenv
 websockets
 google-generativeai
+scikit-learn
+numpy

@@ -8,6 +8,7 @@ import VisualPanel from '../components/VisualPanel';
 import CodePanel from '../components/CodePanel';
 import QuizPanel from '../components/QuizPanel';
 import DetailModal from '../components/DetailModal';
+import LinearRegressionLab from '../components/LinearRegressionLab';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
 
@@ -457,6 +458,8 @@ export default function Home() {
             />
           </section>
         )}
+
+        {active?.id === 0 && <LinearRegressionLab />}
 
         {active && (() => {
           const currentIndex = algorithms.findIndex((a) => a.id === activeId);

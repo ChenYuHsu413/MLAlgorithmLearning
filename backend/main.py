@@ -1,6 +1,8 @@
 import os
 import json
 import asyncio
+import numpy as np
+from sklearn.linear_model import LinearRegression as SklearnLR
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -432,6 +434,48 @@ def get_algorithm(algorithm_id: int) -> Algorithm:
         if algo.id == algorithm_id:
             return algo
     raise HTTPException(status_code=404, detail="Algorithm not found")
+
+
+class LinearRegressionInput(BaseModel):
+    x_values: List[float]
+    y_values: List[float]
+
+
+@app.post("/api/run-linear-regression")
+def run_linear_regression(data: LinearRegressionInput):
+    if len(data.x_values) < 2:
+        raise HTTPException(status_code=400, detail="至少需要 2 個資料點")
+    if len(data.x_values) != len(data.y_values):
+        raise HTTPException(status_code=400, detail="X 與 Y 的資料點數量必須相同")
+    if len(data.x_values) > 200:
+        raise HTTPException(status_code=400, detail="資料點上限為 200 個")
+
+    X = np.array(data.x_values).reshape(-1, 1)
+    y = np.array(data.y_values)
+
+    model = SklearnLR()
+    model.fit(X, y)
+
+    slope = float(model.coef_[0])
+    intercept = float(model.intercept_)
+    r_squared = float(model.score(X, y))
+
+    x_min, x_max = float(np.min(X)), float(np.max(X))
+    line_x = [x_min, x_max]
+    line_y = [slope * x_min + intercept, slope * x_max + intercept]
+
+    predictions = [round(slope * x + intercept, 4) for x in data.x_values]
+
+    return {
+        "slope": round(slope, 4),
+        "intercept": round(intercept, 4),
+        "r_squared": round(r_squared, 4),
+        "x_values": data.x_values,
+        "y_values": data.y_values,
+        "predictions": predictions,
+        "line_x": line_x,
+        "line_y": [round(v, 4) for v in line_y],
+    }
 
 
 SYSTEM_PROMPT_MOCK = (
