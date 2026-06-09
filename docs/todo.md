@@ -81,9 +81,9 @@ Generated: 2026-06-09
 - [x] Restrict `allow_origins` in `backend/main.py` from `["*"]` to the actual frontend domain
 - [x] Use environment variable for the allowed origin (already have `ALLOWED_ORIGINS` in render.yaml)
 
-### 4-3. Loading States
-- [ ] Add skeleton loading cards while algorithm data is fetching from the backend
-- [ ] Add a spinner or placeholder in the visualization panel on initial load
+### 4-3. Loading States ✅ DONE
+- [x] Add skeleton loading cards while algorithm data is fetching from the backend
+- [x] Add a spinner or placeholder in the visualization panel on initial load
 - [x] Handle API-down / cold start state gracefully — spinner while loading, cloud icon + auto-retry every 10s when backend is warming up (Render free tier)
 
 ---

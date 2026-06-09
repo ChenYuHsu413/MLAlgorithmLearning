@@ -169,6 +169,57 @@ git push
 # commit: f7d5d26
 ```
 
+## Session 12 — 2026-06-09｜Phase 4-3 Skeleton Loading States
+
+### 目標
+取消首次載入的全頁旋轉動畫（「平台啟動中」），改為在真實頁面佈局內顯示骨架屏，讓使用者立即看到頁面結構。
+
+### 變更：frontend/pages/index.js
+
+```jsx
+// 1. 移除早期返回的「平台啟動中」全頁 spinner（約 54 行）
+//    → 後端 warming-up 的雲朵畫面保留不動
+
+// 2. cardRail：algorithms.length === 0 時顯示 10 張骨架卡
+<section className="cardRail">
+  {algorithms.length === 0
+    ? Array.from({ length: 10 }, (_, i) => (
+        <div key={i} className="algoCard skeletonCard" aria-hidden="true">
+          <div className="skEl skBadge" />   {/* 圓形數字徽章 */}
+          <div className="skEl skTitle" />   {/* 演算法名稱 */}
+          <div className="skEl skChart" />   {/* SVG 圖表區 */}
+          <div className="skEl skText"  />   {/* 概念說明 */}
+          <div className="skEl skLevel" />   {/* 難度徽章 */}
+        </div>
+      ))
+    : filtered.map(...) /* 原有卡片邏輯 */
+  }
+</section>
+
+// 3. labGrid 上方：algorithms.length === 0 時顯示 3 欄骨架面板
+{algorithms.length === 0 && (
+  <div className="skeletonLab" aria-hidden="true">
+    <div className="skeletonPanel skEl" />
+    <div className="skeletonPanel skEl" />
+    <div className="skeletonPanel skEl" />
+  </div>
+)}
+
+// 4. 新增 CSS
+// @keyframes shimmer: 300px 寬度的高光從左到右掃過（1.4s loop）
+// .skEl: linear-gradient shimmer，深色模式用 #1e293b / #334155
+// .skeletonPanel: height: 420px，模擬三欄 labGrid 的高度
+```
+
+### Git 提交
+```bash
+git add frontend/pages/index.js docs/todo.md docs/log.md "docs/工作報告.md" README.md
+git commit -m "feat: Phase 4-3 — skeleton loading cards and lab placeholder"
+git push
+```
+
+---
+
 ## Session 11 — 2026-06-09｜Phase 4-2 CORS Security 確認與 render.yaml 補全
 
 ### 說明

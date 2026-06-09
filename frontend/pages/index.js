@@ -186,62 +186,6 @@ export default function Home() {
     }
   }
 
-  if (loading && algorithms.length === 0) {
-    return (
-      <main className={`appShell ${scene} warmupScreen`}>
-        <div className="warmupCard">
-          <div className="warmupSpinner" />
-          <h2>平台啟動中</h2>
-          <p>系統初始化中，請稍候…</p>
-        </div>
-        <style jsx global>{`
-          html, body { margin: 0; height: 100%; }
-        `}</style>
-        <style jsx>{`
-          .warmupScreen {
-            --bg: #f8fafc; --surface: #fff; --text: #172033;
-            --muted: #475569; --line: #dbe3ef; --accent: #4f63f6; --shadow: rgba(15,23,42,0.05);
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background: var(--bg);
-            font-family: Arial, 'Noto Sans TC', sans-serif;
-            color: var(--text);
-          }
-          .warmupScreen.dark {
-            --bg: #0b1120; --surface: #111827; --text: #e5e7eb;
-            --muted: #cbd5e1; --line: #334155; --accent: #8b9cff; --shadow: rgba(0,0,0,0.24);
-          }
-          .warmupCard {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            padding: 40px 48px;
-            border-radius: 16px;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            box-shadow: 0 12px 40px var(--shadow);
-            text-align: center;
-            max-width: 340px;
-          }
-          .warmupSpinner {
-            width: 44px;
-            height: 44px;
-            border: 4px solid var(--line);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-          }
-          @keyframes spin { to { transform: rotate(360deg); } }
-          h2 { margin: 0; font-size: 1.25rem; color: var(--text); }
-          p { margin: 0; color: var(--muted); font-size: 0.9rem; }
-        `}</style>
-      </main>
-    );
-  }
-
   if (error === 'warming-up' && algorithms.length === 0) {
     return (
       <main className={`appShell ${scene} warmupScreen`}>
@@ -456,21 +400,40 @@ export default function Home() {
         )}
 
         <section className="cardRail">
-          {filtered.map((algo, index) => (
-            <button key={algo.id} type="button" className={`algoCard ${active?.id === algo.id ? 'active' : ''}`} onClick={() => startLearning(algo.id)}>
-              <b style={{ background: algo.color }}>{index + 1}</b>
-              <h3>{algo.shortName}</h3>
-              <MiniChart type={chartType(algo.id)} color={algo.color} algoId={algo.id} />
-              <p>{algo.concept}</p>
-              <span className={`levelBadge lvBadge-${algo.level}`}>{algo.level}</span>
-              <span>{active?.id === algo.id ? '正在學習' : '開始學習'}</span>
-            </button>
-          ))}
+          {algorithms.length === 0
+            ? Array.from({ length: 10 }, (_, i) => (
+                <div key={i} className="algoCard skeletonCard" aria-hidden="true">
+                  <div className="skEl skBadge" />
+                  <div className="skEl skTitle" />
+                  <div className="skEl skChart" />
+                  <div className="skEl skText" />
+                  <div className="skEl skLevel" />
+                </div>
+              ))
+            : filtered.map((algo, index) => (
+                <button key={algo.id} type="button" className={`algoCard ${active?.id === algo.id ? 'active' : ''}`} onClick={() => startLearning(algo.id)}>
+                  <b style={{ background: algo.color }}>{index + 1}</b>
+                  <h3>{algo.shortName}</h3>
+                  <MiniChart type={chartType(algo.id)} color={algo.color} algoId={algo.id} />
+                  <p>{algo.concept}</p>
+                  <span className={`levelBadge lvBadge-${algo.level}`}>{algo.level}</span>
+                  <span>{active?.id === algo.id ? '正在學習' : '開始學習'}</span>
+                </button>
+              ))
+          }
         </section>
 
         <AlgorithmRelationshipMap onSelect={startLearning} />
 
         {learningNotice && <p className="learningNotice">{learningNotice}</p>}
+
+        {algorithms.length === 0 && (
+          <div className="skeletonLab" aria-hidden="true">
+            <div className="skeletonPanel skEl" />
+            <div className="skeletonPanel skEl" />
+            <div className="skeletonPanel skEl" />
+          </div>
+        )}
 
         {active && activeExample && (
           <section ref={labRef} className="labGrid">
@@ -963,6 +926,34 @@ export default function Home() {
           padding: 3px 2px 20px;
           margin-bottom: 10px;
         }
+        @keyframes shimmer {
+          0%   { background-position: -300px 0; }
+          100% { background-position: calc(300px + 100%) 0; }
+        }
+        .skEl {
+          border-radius: 6px;
+          background: linear-gradient(90deg, var(--line) 25%, var(--surface-soft, #e2e8f0) 50%, var(--line) 75%);
+          background-size: 300px 100%;
+          animation: shimmer 1.4s ease-in-out infinite;
+        }
+        .dark .skEl {
+          background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+          background-size: 300px 100%;
+        }
+        .skeletonCard { cursor: default; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+        .skBadge  { width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0; }
+        .skTitle  { height: 36px; width: 90%; }
+        .skChart  { height: 72px; width: 100%; }
+        .skText   { height: 42px; width: 100%; }
+        .skLevel  { height: 18px; width: 55%; }
+        .skeletonLab {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+          margin-top: 8px;
+          margin-bottom: 20px;
+        }
+        .skeletonPanel { height: 420px; border-radius: 9px; }
         .algoCard {
           min-height: 252px;
           border: 1px solid var(--line);
