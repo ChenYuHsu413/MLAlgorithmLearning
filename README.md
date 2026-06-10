@@ -1,5 +1,6 @@
 # ML Algorithm Learning
 
+注意:第一次開啟因使用的是Render免費專案，需要等待伺服器啟動
 > Demo Link: https://ml-algorithm-learning.onrender.com/
 
 ![Demo Screenshot](sources/demo_screenshot.png)
