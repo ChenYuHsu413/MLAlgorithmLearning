@@ -1032,7 +1032,8 @@ async def websocket_ai_chat(websocket: WebSocket):
         f" | sec-ch-ua={h.get('sec-ch-ua', '—')}"
         f" | platform={h.get('sec-ch-ua-platform', '—')}"
         f" | accept-language={h.get('accept-language', '—')}"
-        f" | ua={h.get('user-agent', '—')}"
+        f" | ua={h.get('user-agent', '—')}",
+        flush=True,
     )
     await websocket.accept()
     try:
