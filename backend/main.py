@@ -826,6 +826,10 @@ class RunCodeInput(BaseModel):
     params: dict = {}
 
 
+def clamp(value, low, high):
+    return max(low, min(value, high))
+
+
 @app.post("/api/run-code")
 def run_code(data: RunCodeInput):
     aid = data.algorithm_id
@@ -852,7 +856,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 1:
-            max_iter = int(params.get("max_iter", 1000))
+            max_iter = clamp(int(params.get("max_iter", 1000)), 1, 5000)
             X, y = make_classification(n_samples=200, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             model = SklearnLGR(max_iter=max_iter, random_state=42)
@@ -868,7 +872,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 2:
-            max_depth = int(params.get("max_depth", 4))
+            max_depth = clamp(int(params.get("max_depth", 4)), 1, 20)
             X, y = make_classification(n_samples=200, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             model = DecisionTreeClassifier(max_depth=max_depth, random_state=42)
@@ -885,7 +889,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 3:
-            n_est = int(params.get("n_estimators", 100))
+            n_est = clamp(int(params.get("n_estimators", 100)), 1, 300)
             X, y = make_classification(n_samples=200, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             model = RandomForestClassifier(n_estimators=n_est, random_state=42)
@@ -902,7 +906,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 4:
-            C = float(params.get("C", 1.0))
+            C = clamp(float(params.get("C", 1.0)), 0.001, 100.0)
             X, y = make_classification(n_samples=200, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             scaler = StandardScaler()
@@ -921,7 +925,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 5:
-            k = int(params.get("n_neighbors", 5))
+            k = clamp(int(params.get("n_neighbors", 5)), 1, 50)
             X, y = make_classification(n_samples=200, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             scaler = StandardScaler()
@@ -953,7 +957,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 7:
-            n_clusters = int(params.get("n_clusters", 4))
+            n_clusters = clamp(int(params.get("n_clusters", 4)), 1, 10)
             X, _ = make_blobs(n_samples=200, centers=4, random_state=42)
             X_scaled = StandardScaler().fit_transform(X)
             model = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
@@ -985,7 +989,7 @@ def run_code(data: RunCodeInput):
             ]}
 
         elif aid == 9:
-            hidden = int(params.get("hidden_size", 64))
+            hidden = clamp(int(params.get("hidden_size", 64)), 1, 256)
             X, y = make_classification(n_samples=300, n_features=10, random_state=42)
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             scaler = StandardScaler()
