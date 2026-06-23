@@ -1025,6 +1025,8 @@ SYSTEM_PROMPT_MOCK = (
 
 @app.websocket("/ws/ai-chat")
 async def websocket_ai_chat(websocket: WebSocket):
+    client = websocket.client.host if websocket.client else "unknown"
+    print(f"WS connect | ip={client} | origin={websocket.headers.get('origin', '—')} | ua={websocket.headers.get('user-agent', '—')}")
     await websocket.accept()
     try:
         while True:
